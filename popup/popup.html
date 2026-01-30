@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Crunchyroll Speed Controller</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Speed Controller</h1>
+      <div class="status" id="status">
+        <span class="status-dot"></span>
+        <span class="status-text">Checking...</span>
+      </div>
+    </header>
+
+    <section class="speed-display">
+      <span class="speed-value" id="speedValue">1.00</span>
+      <span class="speed-label">x</span>
+    </section>
+
+    <section class="slider-section">
+      <input
+        type="range"
+        id="speedSlider"
+        min="0.25"
+        max="4"
+        step="0.05"
+        value="1"
+      >
+      <div class="slider-labels">
+        <span>0.25x</span>
+        <span>4.0x</span>
+      </div>
+    </section>
+
+    <section class="quick-buttons">
+      <button class="quick-btn" data-speed="0.5">0.5x</button>
+      <button class="quick-btn" data-speed="0.75">0.75x</button>
+      <button class="quick-btn active" data-speed="1">1.0x</button>
+      <button class="quick-btn" data-speed="1.25">1.25x</button>
+      <button class="quick-btn" data-speed="1.5">1.5x</button>
+      <button class="quick-btn" data-speed="2">2.0x</button>
+    </section>
+
+    <section class="fine-controls">
+      <button class="control-btn" id="decreaseBtn" title="Decrease speed">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M19 12H5M12 19l-7-7 7-7"/>
+        </svg>
+        Slower
+      </button>
+      <button class="control-btn reset" id="resetBtn" title="Reset to 1.0x">
+        Reset
+      </button>
+      <button class="control-btn" id="increaseBtn" title="Increase speed">
+        Faster
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M5 12h14M12 5l7 7-7 7"/>
+        </svg>
+      </button>
+    </section>
+
+    <section class="settings">
+      <label class="setting-item">
+        <span>Remember speed</span>
+        <input type="checkbox" id="rememberSpeed" checked>
+        <span class="toggle"></span>
+      </label>
+      <label class="setting-item">
+        <span>Show indicator</span>
+        <input type="checkbox" id="showIndicator" checked>
+        <span class="toggle"></span>
+      </label>
+    </section>
+
+    <footer>
+      <p class="shortcuts-hint">
+        Shortcuts: <kbd>Shift</kbd>+<kbd>&gt;</kbd> / <kbd>&lt;</kbd> to adjust
+      </p>
+    </footer>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

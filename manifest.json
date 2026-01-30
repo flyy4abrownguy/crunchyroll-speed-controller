@@ -1,0 +1,62 @@
+{
+  "manifest_version": 3,
+  "name": "Crunchyroll Speed Controller",
+  "version": "1.0.0",
+  "description": "Control video playback speed on Crunchyroll with customizable keyboard shortcuts and on-screen indicator.",
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "permissions": ["storage"],
+  "host_permissions": ["*://*.crunchyroll.com/*"],
+  "action": {
+    "default_popup": "popup/popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "32": "icons/icon32.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    },
+    "default_title": "Crunchyroll Speed Controller"
+  },
+  "background": {
+    "service_worker": "background/service-worker.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["*://*.crunchyroll.com/*"],
+      "js": ["content/content.js"],
+      "css": ["content/content.css"],
+      "run_at": "document_idle",
+      "all_frames": true
+    }
+  ],
+  "commands": {
+    "increase-speed": {
+      "suggested_key": {
+        "default": "Alt+Period"
+      },
+      "description": "Increase playback speed"
+    },
+    "decrease-speed": {
+      "suggested_key": {
+        "default": "Alt+Comma"
+      },
+      "description": "Decrease playback speed"
+    },
+    "reset-speed": {
+      "suggested_key": {
+        "default": "Alt+0"
+      },
+      "description": "Reset speed to 1.0x"
+    },
+    "toggle-indicator": {
+      "suggested_key": {
+        "default": "Alt+V"
+      },
+      "description": "Toggle speed indicator visibility"
+    }
+  }
+}

@@ -1,0 +1,17 @@
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Package files
+*.zip
+*.crx
+*.pem
+
+# Node (if adding build tools later)
+node_modules/
