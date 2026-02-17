@@ -1,56 +1,105 @@
-# Crunchyroll Speed Controller
+<p align="center">
+  <img src="store-assets/store-icon-128x128.png" alt="Crunchyroll Speed Controller" width="128" height="128">
+</p>
 
-A Chrome extension to control video playback speed on Crunchyroll.com with keyboard shortcuts and an on-screen indicator.
+<h1 align="center">Crunchyroll Speed Controller</h1>
 
-![Version](https://img.shields.io/badge/version-1.0.0-orange)
-![License](https://img.shields.io/badge/license-MIT-blue)
+<p align="center">
+  <strong>Watch anime at your own pace</strong>
+</p>
+
+<p align="center">
+  <a href="#installation">Install</a> •
+  <a href="#features">Features</a> •
+  <a href="#usage">Usage</a> •
+  <a href="#keyboard-shortcuts">Shortcuts</a> •
+  <a href="#contributing">Contributing</a>
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/manifest-v3-blue" alt="Manifest V3">
+  <img src="https://img.shields.io/badge/version-1.0.0-orange" alt="Version">
+  <img src="https://img.shields.io/badge/license-MIT-green" alt="License">
+  <img src="https://img.shields.io/badge/chrome-extension-yellow" alt="Chrome Extension">
+</p>
+
+<p align="center">
+  <img src="store-assets/screenshot-640x400.png" alt="Screenshot" width="600">
+</p>
+
+---
 
 ## Features
 
-- **Speed Control**: Adjust playback from 0.25x to 4.0x
-- **Popup UI**: Easy-to-use slider and quick-select buttons
-- **Keyboard Shortcuts**: Control speed without leaving fullscreen
-- **On-Screen Indicator**: See current speed with auto-hiding overlay
-- **Remembers Your Speed**: Persists your preferred speed across sessions
-- **Dark Theme**: Matches Crunchyroll's aesthetic
+| Feature | Description |
+|---------|-------------|
+| **Speed Control** | Adjust playback from 0.25x to 4.0x |
+| **Quick Buttons** | One-click presets: 0.5x, 0.75x, 1.0x, 1.25x, 1.5x, 2.0x |
+| **Keyboard Shortcuts** | Control speed without leaving fullscreen |
+| **On-Screen Indicator** | See current speed with auto-hiding overlay |
+| **Remember Speed** | Persists your preferred speed across sessions |
+| **Dark Theme** | Seamlessly matches Crunchyroll's aesthetic |
+
+---
 
 ## Installation
 
-### Option 1: Chrome Web Store (Recommended)
-*Coming soon*
+### Option 1: Chrome Web Store
+> **Status:** Pending Review
 
-### Option 2: Install from Source (Developer Mode)
+Once approved, install directly from the Chrome Web Store (link coming soon).
 
-1. **Download the extension**
-   - Click the green "Code" button above
-   - Select "Download ZIP"
-   - Extract the ZIP file to a folder on your computer
+### Option 2: Manual Install (Developer Mode)
 
-2. **Open Chrome Extensions**
-   - Open Chrome and go to `chrome://extensions`
-   - Or: Menu (⋮) → More Tools → Extensions
+<details>
+<summary><strong>Click to expand installation steps</strong></summary>
 
-3. **Enable Developer Mode**
-   - Toggle "Developer mode" in the top-right corner
+#### Step 1: Download
+```bash
+git clone https://github.com/flyy4abrownguy/crunchyroll-speed-controller.git
+```
+Or [download ZIP](https://github.com/flyy4abrownguy/crunchyroll-speed-controller/archive/refs/heads/main.zip) and extract.
 
-4. **Load the extension**
-   - Click "Load unpacked"
-   - Select the extracted folder (the one containing `manifest.json`)
+#### Step 2: Open Chrome Extensions
+Navigate to `chrome://extensions` in your browser.
 
-5. **Done!**
-   - The extension icon should appear in your toolbar
-   - Navigate to Crunchyroll and start watching!
+#### Step 3: Enable Developer Mode
+Toggle **"Developer mode"** in the top-right corner.
+
+#### Step 4: Load Extension
+1. Click **"Load unpacked"**
+2. Select the `crunchyroll-speed-controller` folder (containing `manifest.json`)
+
+#### Step 5: Done!
+The extension icon appears in your toolbar. Navigate to [Crunchyroll](https://crunchyroll.com) and enjoy!
+
+</details>
+
+---
 
 ## Usage
 
 ### Popup Controls
-Click the extension icon to open the popup:
-- **Slider**: Drag to set any speed from 0.25x to 4.0x
-- **Quick Buttons**: 0.5x, 0.75x, 1.0x, 1.25x, 1.5x, 2.0x
-- **Slower/Faster**: Adjust by 0.25x increments
-- **Reset**: Return to normal speed (1.0x)
 
-### Keyboard Shortcuts
+Click the extension icon while on Crunchyroll to open the control panel:
+
+- **Slider** — Drag to set any speed from 0.25x to 4.0x
+- **Quick Buttons** — Instant presets (0.5x, 0.75x, 1.0x, 1.25x, 1.5x, 2.0x)
+- **Slower / Faster** — Fine-tune by 0.25x increments
+- **Reset** — Return to normal speed (1.0x)
+
+### Settings
+
+| Setting | Description |
+|---------|-------------|
+| **Remember speed** | Save your preferred speed across sessions |
+| **Show indicator** | Toggle the on-screen speed display |
+
+---
+
+## Keyboard Shortcuts
+
+Use these shortcuts while watching on Crunchyroll:
 
 | Action | Shortcut |
 |--------|----------|
@@ -58,67 +107,82 @@ Click the extension icon to open the popup:
 | Decrease speed | `Shift` + `<` |
 | Reset to 1.0x | `Shift` + `?` |
 
-*Alternative shortcuts (customizable in chrome://extensions/shortcuts):*
-- `Alt` + `.` — Increase speed
-- `Alt` + `,` — Decrease speed
-- `Alt` + `0` — Reset to 1.0x
-- `Alt` + `V` — Toggle indicator
+### Global Shortcuts (Customizable)
 
-### Settings
-- **Remember speed**: Keep your preferred speed across browser sessions
-- **Show indicator**: Toggle the on-screen speed display
+These work even when the page isn't focused. Customize them at `chrome://extensions/shortcuts`:
 
-## Screenshots
+| Action | Default |
+|--------|---------|
+| Increase speed | `Alt` + `.` |
+| Decrease speed | `Alt` + `,` |
+| Reset to 1.0x | `Alt` + `0` |
+| Toggle indicator | `Alt` + `V` |
 
-*Coming soon*
+---
+
+## Project Structure
+
+```
+crunchyroll-speed-controller/
+├── manifest.json        # Extension configuration (Manifest V3)
+├── background/
+│   └── service-worker.js    # Handles keyboard commands
+├── content/
+│   ├── content.js       # Video control & speed indicator
+│   └── content.css      # Indicator overlay styles
+├── popup/
+│   ├── popup.html       # Popup UI structure
+│   ├── popup.css        # Dark theme styling
+│   └── popup.js         # Popup logic & settings
+├── icons/               # Extension icons (16, 32, 48, 128px)
+├── store-assets/        # Chrome Web Store graphics
+└── privacy-policy.md    # Privacy policy
+```
+
+---
 
 ## Privacy
 
-This extension:
-- Does **NOT** collect any personal data
-- Does **NOT** track your browsing
-- Does **NOT** send any data to external servers
-- Only stores your speed preferences locally in Chrome
+This extension respects your privacy:
+
+- **No data collection** — We don't collect any personal information
+- **No tracking** — No analytics, no external requests
+- **Local storage only** — Settings saved locally via Chrome's storage API
+- **Open source** — Full code transparency
 
 See [privacy-policy.md](privacy-policy.md) for details.
 
-## Development
-
-### Project Structure
-```
-crunchyroll-speed-controller/
-├── manifest.json           # Extension configuration
-├── icons/                  # Extension icons
-├── popup/                  # Popup UI (HTML, CSS, JS)
-├── content/                # Content script (video control)
-├── background/             # Service worker
-└── privacy-policy.md       # Privacy policy
-```
-
-### Building from Source
-No build step required! The extension runs directly from source.
-
-### Testing Changes
-1. Make your changes
-2. Go to `chrome://extensions`
-3. Click the reload icon on the extension card
-4. Refresh the Crunchyroll page
+---
 
 ## Contributing
 
 Contributions are welcome! Feel free to:
-- Report bugs
-- Suggest features
-- Submit pull requests
 
-## License
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
-MIT License - feel free to use and modify as you wish.
-
-## Support
-
-If you encounter any issues, please [open an issue](../../issues) on GitHub.
+### Ideas for Contributions
+- [ ] Add more playback speed presets
+- [ ] Custom keyboard shortcut configuration in popup
+- [ ] Sync settings across devices
+- [ ] Support for other streaming sites
 
 ---
 
-Made with ☕ for anime fans who like to watch at their own pace.
+## License
+
+MIT License — see [LICENSE](LICENSE) for details.
+
+---
+
+<p align="center">
+  Made with ☕ for anime fans who like to watch at their own pace.
+</p>
+
+<p align="center">
+  <a href="https://github.com/flyy4abrownguy/crunchyroll-speed-controller/issues">Report Bug</a> •
+  <a href="https://github.com/flyy4abrownguy/crunchyroll-speed-controller/issues">Request Feature</a>
+</p>

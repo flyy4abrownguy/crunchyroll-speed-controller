@@ -8,10 +8,14 @@ Thumbs.db
 *.swp
 *.swo
 
-# Package files
+# Package files (generated for Chrome Web Store)
 *.zip
 *.crx
 *.pem
 
 # Node (if adding build tools later)
 node_modules/
+
+# Temporary files
+*.log
+*.tmp
