@@ -10,10 +10,20 @@
   let indicatorElement = null;
   let videoElement = null;
 
+  // Time tracking
+  let timeSavedSec = 0;
+  let timeWatchedSec = 0;
+  let lastStatsSave = Date.now();
+
+  // Per-series speed
+  let perSeriesSpeed = false;
+  let seriesSpeeds = {};
+  let lastUrl = window.location.href;
+
   // Speed limits
   const MIN_SPEED = 0.25;
   const MAX_SPEED = 4.0;
-  const SPEED_STEP = 0.25;
+  let speedStep = 0.25;
 
   // Initialize
   async function init() {
@@ -21,14 +31,35 @@
     const settings = await chrome.storage.sync.get({
       speed: 1.0,
       rememberSpeed: true,
-      showIndicator: true
+      showIndicator: true,
+      speedStep: 0.25,
+      perSeriesSpeed: false,
+      seriesSpeeds: {}
     });
 
     showIndicator = settings.showIndicator;
+    speedStep = settings.speedStep;
+    perSeriesSpeed = settings.perSeriesSpeed;
+    seriesSpeeds = settings.seriesSpeeds;
 
     if (settings.rememberSpeed) {
       currentSpeed = settings.speed;
     }
+
+    // Apply per-series speed if enabled
+    if (perSeriesSpeed) {
+      const slug = getSeriesSlug();
+      if (slug && seriesSpeeds[slug] !== undefined) {
+        currentSpeed = seriesSpeeds[slug];
+      }
+    }
+
+    // Load existing stats
+    const statsData = await chrome.storage.local.get({
+      stats: { totalTimeSavedSec: 0, totalTimeWatchedSec: 0 }
+    });
+    timeSavedSec = statsData.stats.totalTimeSavedSec;
+    timeWatchedSec = statsData.stats.totalTimeWatchedSec;
 
     // Create indicator element
     createIndicator();
@@ -39,7 +70,7 @@
     // Watch for dynamically loaded videos
     observeVideoChanges();
 
-    // Periodic check for videos (backup for dynamic loading)
+    // Periodic check for videos (backup for dynamic loading) + time tracking
     setInterval(() => {
       const videos = document.querySelectorAll('video');
       if (videos.length > 0 && !videoElement) {
@@ -51,12 +82,69 @@
           video.playbackRate = currentSpeed;
         }
       });
+
+      // Check for SPA URL changes
+      checkUrlChange();
+
+      // Track time saved when watching at modified speed
+      if (videoElement && !videoElement.paused && currentSpeed > 1.0) {
+        const interval = 2; // seconds (matches setInterval period)
+        const saved = interval * (1 - 1 / currentSpeed);
+        timeSavedSec += saved;
+        timeWatchedSec += interval;
+      }
+
+      // Persist stats every 30 seconds
+      if (Date.now() - lastStatsSave >= 30000) {
+        chrome.storage.local.set({
+          stats: {
+            totalTimeSavedSec: Math.round(timeSavedSec),
+            totalTimeWatchedSec: Math.round(timeWatchedSec)
+          }
+        });
+        lastStatsSave = Date.now();
+      }
     }, 2000);
+
+    // Listen for SPA navigation
+    window.addEventListener('popstate', checkUrlChange);
 
     // Listen for messages from popup/background
     chrome.runtime.onMessage.addListener(handleMessage);
 
     console.log('Crunchyroll Speed Controller initialized');
+  }
+
+  // Extract series slug from Crunchyroll URL
+  // URLs follow: /watch/{episodeId}/{slug} or /series/{seriesId}/{slug}
+  function getSeriesSlug() {
+    const path = window.location.pathname;
+    const watchMatch = path.match(/^\/(?:[a-z]{2}\/)?watch\/[^/]+\/([^/]+)/);
+    if (watchMatch) {
+      // Extract series name from episode slug (e.g., "one-piece-episode-1100" → "one-piece")
+      const slug = watchMatch[1];
+      // Remove episode number suffix like "-episode-123"
+      return slug.replace(/-episode-\d+.*$/, '');
+    }
+    const seriesMatch = path.match(/^\/(?:[a-z]{2}\/)?series\/[^/]+\/([^/]+)/);
+    if (seriesMatch) {
+      return seriesMatch[1];
+    }
+    return null;
+  }
+
+  // Handle URL changes (Crunchyroll is a SPA)
+  function checkUrlChange() {
+    const currentUrl = window.location.href;
+    if (currentUrl !== lastUrl) {
+      lastUrl = currentUrl;
+      if (perSeriesSpeed) {
+        const slug = getSeriesSlug();
+        if (slug && seriesSpeeds[slug] !== undefined) {
+          setVideoSpeed(seriesSpeeds[slug]);
+        }
+      }
+    }
   }
 
   // Create the on-screen speed indicator
@@ -191,9 +279,23 @@
     }
 
     // Save to storage
-    chrome.storage.sync.get({ rememberSpeed: true }, (settings) => {
+    chrome.storage.sync.get({ rememberSpeed: true, perSeriesSpeed: false, seriesSpeeds: {} }, (settings) => {
       if (settings.rememberSpeed) {
         chrome.storage.sync.set({ speed: speed });
+      }
+      // Save per-series speed if enabled
+      if (settings.perSeriesSpeed) {
+        const slug = getSeriesSlug();
+        if (slug) {
+          const updatedSpeeds = { ...settings.seriesSpeeds, [slug]: speed };
+          // Cap at 50 entries (LRU: remove oldest if over limit)
+          const keys = Object.keys(updatedSpeeds);
+          if (keys.length > 50) {
+            delete updatedSpeeds[keys[0]];
+          }
+          seriesSpeeds = updatedSpeeds;
+          chrome.storage.sync.set({ seriesSpeeds: updatedSpeeds });
+        }
       }
     });
 
@@ -213,12 +315,12 @@
         break;
 
       case 'increaseSpeed':
-        const increased = setVideoSpeed(currentSpeed + SPEED_STEP);
+        const increased = setVideoSpeed(currentSpeed + speedStep);
         sendResponse({ success: true, speed: increased });
         break;
 
       case 'decreaseSpeed':
-        const decreased = setVideoSpeed(currentSpeed - SPEED_STEP);
+        const decreased = setVideoSpeed(currentSpeed - speedStep);
         sendResponse({ success: true, speed: decreased });
         break;
 
@@ -233,6 +335,16 @@
           hideIndicator();
         }
         sendResponse({ success: true, showIndicator });
+        break;
+
+      case 'setSpeedStep':
+        speedStep = message.speedStep;
+        sendResponse({ success: true, speedStep });
+        break;
+
+      case 'setPerSeriesSpeed':
+        perSeriesSpeed = message.enabled;
+        sendResponse({ success: true, perSeriesSpeed });
         break;
 
       default:
@@ -251,13 +363,13 @@
     // Shift + > (period) - Increase speed
     if (e.shiftKey && e.key === '>') {
       e.preventDefault();
-      setVideoSpeed(currentSpeed + SPEED_STEP);
+      setVideoSpeed(currentSpeed + speedStep);
     }
 
     // Shift + < (comma) - Decrease speed
     if (e.shiftKey && e.key === '<') {
       e.preventDefault();
-      setVideoSpeed(currentSpeed - SPEED_STEP);
+      setVideoSpeed(currentSpeed - speedStep);
     }
 
     // Shift + ? (slash) - Reset speed

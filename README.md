@@ -18,7 +18,7 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/manifest-v3-blue" alt="Manifest V3">
-  <img src="https://img.shields.io/badge/version-1.0.0-orange" alt="Version">
+  <img src="https://img.shields.io/badge/version-1.1.0-orange" alt="Version">
   <img src="https://img.shields.io/badge/license-MIT-green" alt="License">
   <img src="https://img.shields.io/badge/chrome-extension-yellow" alt="Chrome Extension">
 </p>
@@ -38,6 +38,10 @@
 | **Keyboard Shortcuts** | Control speed without leaving fullscreen |
 | **On-Screen Indicator** | See current speed with auto-hiding overlay |
 | **Remember Speed** | Persists your preferred speed across sessions |
+| **Per-Series Speed** | Remember different speeds for different anime |
+| **Customizable Step** | Choose speed increment: 0.05x, 0.10x, or 0.25x |
+| **Time Saved Stats** | See how much time you've saved speed-watching |
+| **Send Feedback** | Built-in feedback form to report bugs or request features |
 | **Dark Theme** | Seamlessly matches Crunchyroll's aesthetic |
 
 ---
@@ -85,7 +89,7 @@ Click the extension icon while on Crunchyroll to open the control panel:
 
 - **Slider** — Drag to set any speed from 0.25x to 4.0x
 - **Quick Buttons** — Instant presets (0.5x, 0.75x, 1.0x, 1.25x, 1.5x, 2.0x)
-- **Slower / Faster** — Fine-tune by 0.25x increments
+- **Slower / Faster** — Fine-tune by your chosen step size (0.05x, 0.10x, or 0.25x)
 - **Reset** — Return to normal speed (1.0x)
 
 ### Settings
@@ -94,6 +98,8 @@ Click the extension icon while on Crunchyroll to open the control panel:
 |---------|-------------|
 | **Remember speed** | Save your preferred speed across sessions |
 | **Show indicator** | Toggle the on-screen speed display |
+| **Per-series speed** | Remember different speeds per anime series |
+| **Speed step** | Choose fine control increment (0.05x, 0.10x, 0.25x) |
 
 ---
 
@@ -148,6 +154,7 @@ This extension respects your privacy:
 - **No data collection** — We don't collect any personal information
 - **No tracking** — No analytics, no external requests
 - **Local storage only** — Settings saved locally via Chrome's storage API
+- **Optional feedback** — Feedback submissions are voluntary and user-initiated
 - **Open source** — Full code transparency
 
 See [privacy-policy.md](privacy-policy.md) for details.
@@ -165,10 +172,10 @@ Contributions are welcome! Feel free to:
 5. Open a Pull Request
 
 ### Ideas for Contributions
-- [ ] Add more playback speed presets
 - [ ] Custom keyboard shortcut configuration in popup
-- [ ] Sync settings across devices
-- [ ] Support for other streaming sites
+- [ ] Support for other streaming sites (HiDive, etc.)
+- [ ] Detailed statistics dashboard with time-saved graphs
+- [ ] Subtitle sync adjustment for high speeds
 
 ---
 

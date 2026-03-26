@@ -8,9 +8,13 @@ const increaseBtn = document.getElementById('increaseBtn');
 const rememberSpeedCheckbox = document.getElementById('rememberSpeed');
 const showIndicatorCheckbox = document.getElementById('showIndicator');
 const statusElement = document.getElementById('status');
+const speedStepSelect = document.getElementById('speedStepSelect');
+const perSeriesSpeedCheckbox = document.getElementById('perSeriesSpeed');
+const decreaseLabel = document.getElementById('decreaseLabel');
+const increaseLabel = document.getElementById('increaseLabel');
 
 // Speed step for fine controls
-const SPEED_STEP = 0.25;
+let speedStep = 0.25;
 const MIN_SPEED = 0.25;
 const MAX_SPEED = 4.0;
 
@@ -18,18 +22,30 @@ const MAX_SPEED = 4.0;
 let currentSpeed = 1.0;
 let isOnCrunchyroll = false;
 
+function updateStepLabels() {
+  const stepStr = speedStep % 1 === 0 ? speedStep.toFixed(1) : String(speedStep);
+  decreaseLabel.textContent = `-${stepStr}`;
+  increaseLabel.textContent = `+${stepStr}`;
+}
+
 // Initialize popup
 async function init() {
   // Load saved settings
   const settings = await chrome.storage.sync.get({
     speed: 1.0,
     rememberSpeed: true,
-    showIndicator: true
+    showIndicator: true,
+    speedStep: 0.25,
+    perSeriesSpeed: false
   });
 
   currentSpeed = settings.speed;
   rememberSpeedCheckbox.checked = settings.rememberSpeed;
   showIndicatorCheckbox.checked = settings.showIndicator;
+  speedStep = settings.speedStep;
+  speedStepSelect.value = String(settings.speedStep);
+  perSeriesSpeedCheckbox.checked = settings.perSeriesSpeed;
+  updateStepLabels();
 
   updateUI(currentSpeed);
 
@@ -53,6 +69,21 @@ async function init() {
   } else {
     isOnCrunchyroll = false;
     setStatus(false);
+  }
+
+  // Load time saved stats
+  const statsData = await chrome.storage.local.get({
+    stats: { totalTimeSavedSec: 0, totalTimeWatchedSec: 0 }
+  });
+  const timeSavedEl = document.getElementById('timeSaved');
+  const totalSec = Math.round(statsData.stats.totalTimeSavedSec);
+  if (totalSec >= 3600) {
+    const hours = Math.floor(totalSec / 3600);
+    const mins = Math.floor((totalSec % 3600) / 60);
+    timeSavedEl.textContent = `${hours}h ${mins}m`;
+  } else {
+    const mins = Math.floor(totalSec / 60);
+    timeSavedEl.textContent = `${mins}m`;
   }
 }
 
@@ -139,11 +170,11 @@ quickButtons.forEach(btn => {
 
 // Fine control buttons
 decreaseBtn.addEventListener('click', () => {
-  setSpeed(currentSpeed - SPEED_STEP);
+  setSpeed(currentSpeed - speedStep);
 });
 
 increaseBtn.addEventListener('click', () => {
-  setSpeed(currentSpeed + SPEED_STEP);
+  setSpeed(currentSpeed + speedStep);
 });
 
 resetBtn.addEventListener('click', () => {
@@ -179,6 +210,114 @@ showIndicatorCheckbox.addEventListener('change', async () => {
         console.log('Could not send indicator toggle to content script');
       }
     }
+  }
+});
+
+// Per-series speed toggle
+perSeriesSpeedCheckbox.addEventListener('change', async () => {
+  const enabled = perSeriesSpeedCheckbox.checked;
+  await chrome.storage.sync.set({ perSeriesSpeed: enabled });
+
+  if (isOnCrunchyroll) {
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (tab) {
+      try {
+        await chrome.tabs.sendMessage(tab.id, {
+          action: 'setPerSeriesSpeed',
+          enabled: enabled
+        });
+      } catch (e) {
+        console.log('Could not send per-series setting to content script');
+      }
+    }
+  }
+});
+
+// Speed step change
+speedStepSelect.addEventListener('change', async () => {
+  speedStep = parseFloat(speedStepSelect.value);
+  updateStepLabels();
+  await chrome.storage.sync.set({ speedStep });
+
+  // Notify content script
+  if (isOnCrunchyroll) {
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (tab) {
+      try {
+        await chrome.tabs.sendMessage(tab.id, {
+          action: 'setSpeedStep',
+          speedStep: speedStep
+        });
+      } catch (e) {
+        console.log('Could not send speed step to content script');
+      }
+    }
+  }
+});
+
+// Feedback system
+
+const feedbackTrigger = document.getElementById('feedbackTrigger');
+const feedbackPanel = document.getElementById('feedbackPanel');
+const feedbackMsg = document.getElementById('feedbackMsg');
+const feedbackSubmit = document.getElementById('feedbackSubmit');
+const feedbackStatus = document.getElementById('feedbackStatus');
+
+feedbackTrigger.addEventListener('click', () => {
+  feedbackPanel.classList.toggle('open');
+  feedbackStatus.textContent = '';
+  feedbackStatus.className = 'feedback-status';
+});
+
+feedbackSubmit.addEventListener('click', async () => {
+  const message = feedbackMsg.value.trim();
+  if (!message) {
+    feedbackStatus.textContent = 'Please enter your feedback';
+    feedbackStatus.className = 'feedback-status error';
+    return;
+  }
+
+  // Rate limit: 5 min between submissions
+  const rateData = await chrome.storage.local.get({ lastFeedbackTime: 0 });
+  if (Date.now() - rateData.lastFeedbackTime < 5 * 60 * 1000) {
+    feedbackStatus.textContent = 'Please wait a few minutes before submitting again';
+    feedbackStatus.className = 'feedback-status error';
+    return;
+  }
+
+  const type = document.querySelector('input[name="fbType"]:checked').value;
+  const version = chrome.runtime.getManifest().version;
+
+  feedbackSubmit.disabled = true;
+  feedbackSubmit.textContent = 'Sending...';
+
+  try {
+    const response = await chrome.runtime.sendMessage({
+      action: 'submitFeedback',
+      data: {
+        type,
+        message,
+        version,
+        speed: currentSpeed,
+        timestamp: new Date().toISOString()
+      }
+    });
+
+    if (response && response.success) {
+      feedbackStatus.textContent = 'Thanks for your feedback!';
+      feedbackStatus.className = 'feedback-status success';
+      feedbackMsg.value = '';
+      await chrome.storage.local.set({ lastFeedbackTime: Date.now() });
+    } else {
+      feedbackStatus.textContent = 'Failed to send. Try again later.';
+      feedbackStatus.className = 'feedback-status error';
+    }
+  } catch (e) {
+    feedbackStatus.textContent = 'Failed to send. Try again later.';
+    feedbackStatus.className = 'feedback-status error';
+  } finally {
+    feedbackSubmit.disabled = false;
+    feedbackSubmit.textContent = 'Submit';
   }
 });
 

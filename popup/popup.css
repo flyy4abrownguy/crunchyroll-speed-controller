@@ -9,19 +9,18 @@ body {
   background: #141519;
   color: #ffffff;
   width: 280px;
-  min-height: 380px;
 }
 
 .container {
-  padding: 16px;
+  padding: 12px 16px;
 }
 
 header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 16px;
-  padding-bottom: 12px;
+  margin-bottom: 10px;
+  padding-bottom: 8px;
   border-bottom: 1px solid #2a2c31;
 }
 
@@ -65,11 +64,11 @@ h1 {
 
 .speed-display {
   text-align: center;
-  margin-bottom: 16px;
+  margin-bottom: 10px;
 }
 
 .speed-value {
-  font-size: 48px;
+  font-size: 36px;
   font-weight: 700;
   color: #F47521;
   line-height: 1;
@@ -81,14 +80,14 @@ h1 {
 }
 
 .speed-label {
-  font-size: 24px;
+  font-size: 18px;
   font-weight: 500;
   color: #888;
   margin-left: 2px;
 }
 
 .slider-section {
-  margin-bottom: 16px;
+  margin-bottom: 10px;
 }
 
 #speedSlider {
@@ -140,12 +139,12 @@ h1 {
 .quick-buttons {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
-  margin-bottom: 12px;
+  gap: 6px;
+  margin-bottom: 8px;
 }
 
 .quick-btn {
-  padding: 8px 4px;
+  padding: 6px 4px;
   background: #2a2c31;
   border: 1px solid #3a3c41;
   border-radius: 6px;
@@ -169,8 +168,8 @@ h1 {
 
 .fine-controls {
   display: flex;
-  gap: 8px;
-  margin-bottom: 16px;
+  gap: 6px;
+  margin-bottom: 10px;
 }
 
 .control-btn {
@@ -179,7 +178,7 @@ h1 {
   align-items: center;
   justify-content: center;
   gap: 4px;
-  padding: 10px 8px;
+  padding: 8px 6px;
   background: #2a2c31;
   border: 1px solid #3a3c41;
   border-radius: 6px;
@@ -210,22 +209,22 @@ h1 {
 }
 
 .settings {
-  padding: 12px 0;
+  padding: 8px 0;
   border-top: 1px solid #2a2c31;
   border-bottom: 1px solid #2a2c31;
-  margin-bottom: 12px;
+  margin-bottom: 6px;
 }
 
 .setting-item {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 8px 0;
+  padding: 5px 0;
   cursor: pointer;
 }
 
 .setting-item span:first-child {
-  font-size: 13px;
+  font-size: 12px;
   color: #ccc;
 }
 
@@ -235,11 +234,12 @@ h1 {
 
 .toggle {
   position: relative;
-  width: 36px;
-  height: 20px;
+  width: 32px;
+  height: 18px;
   background: #3a3c41;
-  border-radius: 10px;
+  border-radius: 9px;
   transition: background 0.2s ease;
+  flex-shrink: 0;
 }
 
 .toggle::after {
@@ -247,8 +247,8 @@ h1 {
   position: absolute;
   top: 2px;
   left: 2px;
-  width: 16px;
-  height: 16px;
+  width: 14px;
+  height: 14px;
   background: #888;
   border-radius: 50%;
   transition: all 0.2s ease;
@@ -259,8 +259,52 @@ h1 {
 }
 
 .setting-item input[type="checkbox"]:checked + .toggle::after {
-  left: 18px;
+  left: 16px;
   background: #ffffff;
+}
+
+.stats-display {
+  text-align: center;
+  padding: 10px 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: #F47521;
+  letter-spacing: 0.3px;
+}
+
+.stats-display .stats-value {
+  color: #F47521;
+}
+
+.stats-display .stats-label {
+  color: #888;
+  font-weight: 400;
+  font-size: 10px;
+  display: block;
+  margin-top: 2px;
+}
+
+.stats-icon {
+  margin-right: 4px;
+}
+
+.speed-step-select {
+  background: #2a2c31;
+  border: 1px solid #3a3c41;
+  border-radius: 6px;
+  color: #ffffff;
+  font-size: 12px;
+  padding: 4px 8px;
+  cursor: pointer;
+  outline: none;
+}
+
+.speed-step-select:hover {
+  border-color: #4a4c51;
+}
+
+.speed-step-select:focus {
+  border-color: #F47521;
 }
 
 footer {
@@ -270,6 +314,87 @@ footer {
 .shortcuts-hint {
   font-size: 10px;
   color: #666;
+}
+
+.feedback-trigger {
+  color: #F47521;
+  font-size: 10px;
+  cursor: pointer;
+  margin-top: 6px;
+  transition: opacity 0.15s ease;
+}
+
+.feedback-trigger:hover {
+  opacity: 0.8;
+}
+
+.feedback-panel {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s ease, padding 0.3s ease;
+  padding: 0 0;
+}
+
+.feedback-panel.open {
+  max-height: 300px;
+  padding: 12px 0 0;
+}
+
+.feedback-types {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.feedback-type-label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: #ccc;
+  cursor: pointer;
+}
+
+.feedback-type-label input[type="radio"] {
+  accent-color: #F47521;
+  margin: 0;
+}
+
+.feedback-textarea {
+  width: 100%;
+  background: #2a2c31;
+  border: 1px solid #3a3c41;
+  border-radius: 6px;
+  color: #ffffff;
+  font-family: inherit;
+  font-size: 12px;
+  padding: 8px;
+  resize: none;
+  outline: none;
+  margin-bottom: 8px;
+}
+
+.feedback-textarea:focus {
+  border-color: #F47521;
+}
+
+.feedback-submit {
+  width: 100%;
+}
+
+.feedback-status {
+  font-size: 11px;
+  text-align: center;
+  margin-top: 6px;
+  min-height: 16px;
+}
+
+.feedback-status.success {
+  color: #4caf50;
+}
+
+.feedback-status.error {
+  color: #f44336;
 }
 
 kbd {

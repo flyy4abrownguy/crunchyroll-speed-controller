@@ -47,19 +47,13 @@
 
     <section class="fine-controls">
       <button class="control-btn" id="decreaseBtn" title="Decrease speed">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M19 12H5M12 19l-7-7 7-7"/>
-        </svg>
-        Slower
+        <span id="decreaseLabel">-0.25</span>
       </button>
       <button class="control-btn reset" id="resetBtn" title="Reset to 1.0x">
         Reset
       </button>
       <button class="control-btn" id="increaseBtn" title="Increase speed">
-        Faster
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M5 12h14M12 5l7 7-7 7"/>
-        </svg>
+        <span id="increaseLabel">+0.25</span>
       </button>
     </section>
 
@@ -74,13 +68,51 @@
         <input type="checkbox" id="showIndicator" checked>
         <span class="toggle"></span>
       </label>
+      <label class="setting-item">
+        <span>Per-series speed</span>
+        <input type="checkbox" id="perSeriesSpeed">
+        <span class="toggle"></span>
+      </label>
+      <div class="setting-item">
+        <span>Speed step</span>
+        <select id="speedStepSelect" class="speed-step-select">
+          <option value="0.05">0.05x</option>
+          <option value="0.1">0.10x</option>
+          <option value="0.25" selected>0.25x</option>
+        </select>
+      </div>
+    </section>
+
+    <section class="stats-display">
+      <span class="stats-icon">&#9201;</span><span class="stats-value" id="timeSaved">0m</span> saved
     </section>
 
     <footer>
       <p class="shortcuts-hint">
         Shortcuts: <kbd>Shift</kbd>+<kbd>&gt;</kbd> / <kbd>&lt;</kbd> to adjust
       </p>
+      <div class="feedback-trigger" id="feedbackTrigger">Send Feedback</div>
     </footer>
+
+    <section class="feedback-panel" id="feedbackPanel">
+      <div class="feedback-types">
+        <label class="feedback-type-label">
+          <input type="radio" name="fbType" value="bug" checked>
+          <span>Bug</span>
+        </label>
+        <label class="feedback-type-label">
+          <input type="radio" name="fbType" value="feature">
+          <span>Feature</span>
+        </label>
+        <label class="feedback-type-label">
+          <input type="radio" name="fbType" value="general">
+          <span>General</span>
+        </label>
+      </div>
+      <textarea id="feedbackMsg" class="feedback-textarea" placeholder="Your feedback..." maxlength="500" rows="3"></textarea>
+      <button class="control-btn reset feedback-submit" id="feedbackSubmit">Submit</button>
+      <div class="feedback-status" id="feedbackStatus"></div>
+    </section>
   </div>
 
   <script src="popup.js"></script>
