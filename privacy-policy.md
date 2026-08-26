@@ -1,6 +1,6 @@
 # Privacy Policy for Crunchyroll Speed Controller
 
-**Last Updated:** July 2026
+**Last Updated:** August 2026
 
 ## Overview
 
