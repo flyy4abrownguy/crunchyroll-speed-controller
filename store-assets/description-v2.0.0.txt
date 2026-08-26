@@ -1,0 +1,39 @@
+Control video playback speed on Crunchyroll and HIDIVE — from 0.25x to 4.0x.
+
+NEW IN v2.0.0:
+★ Auto-Skip Intros & Outros — the Skip button clicks itself, so you never reach for it
+★ HIDIVE Support — the same controller now works on HIDIVE as well as Crunchyroll
+★ Stats Dashboard — time saved, watch streaks, top series, and milestone badges
+★ Custom Shortcuts — rebind any action to whichever keys you prefer
+
+FEATURES:
+• Slider + quick presets (0.5x, 0.75x, 1.0x, 1.25x, 1.5x, 2.0x)
+• Auto-skip intros, outros, recaps and credits — switch it off any time
+• Keyboard shortcuts — control speed without leaving fullscreen
+• On-screen indicator with auto-hide
+• Customizable speed step — choose 0.05x, 0.10x, or 0.25x increments
+• Per-series speed — remembers a different speed for each show
+• Remembers your preferred speed across sessions
+• Send Feedback — built-in form to report bugs or request features
+• Dark theme matching Crunchyroll's aesthetic
+• Privacy-first: no tracking, no analytics, no account required
+
+YOUR WATCH STATS:
+See exactly how much time you've reclaimed — a 30-day activity chart, your current
+and longest watch streak, which series have eaten the most hours, and badges that
+unlock as your saved time adds up. All of it stays in local storage on your own
+machine and never leaves your browser.
+
+KEYBOARD SHORTCUTS (all rebindable):
+Shift + > / < — Increase / Decrease speed
+Shift + ? — Reset to 1.0x
+Shift + V — Toggle indicator
+Alt + . / , — Global increase / decrease
+Alt + 0 — Global reset
+Alt + V — Global toggle indicator
+
+Global shortcuts work even when the page isn't focused, and can be changed at
+chrome://extensions/shortcuts.
+
+Lightweight, open source, and built for anime fans. Free, with an optional tip jar
+if it ends up saving you enough time to be worth one.

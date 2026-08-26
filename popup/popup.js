@@ -10,17 +10,40 @@ const showIndicatorCheckbox = document.getElementById('showIndicator');
 const statusElement = document.getElementById('status');
 const speedStepSelect = document.getElementById('speedStepSelect');
 const perSeriesSpeedCheckbox = document.getElementById('perSeriesSpeed');
+const autoSkipCheckbox = document.getElementById('autoSkip');
 const decreaseLabel = document.getElementById('decreaseLabel');
 const increaseLabel = document.getElementById('increaseLabel');
+
+// Your PayPal.me username (the part after paypal.me/).
+const PAYPAL_USERNAME = 'AkilRajpariLLC';
+
+function paypalUrl(amount) {
+  const base = `https://www.paypal.me/${PAYPAL_USERNAME}`;
+  return amount ? `${base}/${amount}USD` : base;
+}
 
 // Speed step for fine controls
 let speedStep = 0.25;
 const MIN_SPEED = 0.25;
 const MAX_SPEED = 4.0;
 
+const DEFAULT_SHORTCUTS = {
+  increaseSpeed:   { code: 'Period', shift: true, ctrl: false, alt: false, meta: false },
+  decreaseSpeed:   { code: 'Comma',  shift: true, ctrl: false, alt: false, meta: false },
+  resetSpeed:      { code: 'Slash',  shift: true, ctrl: false, alt: false, meta: false },
+  toggleIndicator: { code: 'KeyV',   shift: true, ctrl: false, alt: false, meta: false }
+};
+let shortcuts = { ...DEFAULT_SHORTCUTS };
+
 // Current state
 let currentSpeed = 1.0;
 let isOnCrunchyroll = false;
+
+// Supported streaming sites (keep in sync with manifest + content/sites.js).
+const SUPPORTED_HOSTS = ['crunchyroll.com', 'hidive.com'];
+function isSupportedUrl(url) {
+  return SUPPORTED_HOSTS.some((h) => url.includes(h));
+}
 
 function updateStepLabels() {
   const stepStr = speedStep % 1 === 0 ? speedStep.toFixed(1) : String(speedStep);
@@ -36,7 +59,9 @@ async function init() {
     rememberSpeed: true,
     showIndicator: true,
     speedStep: 0.25,
-    perSeriesSpeed: false
+    perSeriesSpeed: false,
+    autoSkip: true,
+    shortcuts: DEFAULT_SHORTCUTS
   });
 
   currentSpeed = settings.speed;
@@ -45,13 +70,16 @@ async function init() {
   speedStep = settings.speedStep;
   speedStepSelect.value = String(settings.speedStep);
   perSeriesSpeedCheckbox.checked = settings.perSeriesSpeed;
+  autoSkipCheckbox.checked = settings.autoSkip;
+  shortcuts = { ...DEFAULT_SHORTCUTS, ...(settings.shortcuts || {}) };
+  renderShortcuts();
   updateStepLabels();
 
   updateUI(currentSpeed);
 
-  // Check if we're on Crunchyroll
+  // Check if we're on a supported site
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-  if (tab && tab.url && tab.url.includes('crunchyroll.com')) {
+  if (tab && tab.url && isSupportedUrl(tab.url)) {
     isOnCrunchyroll = true;
     setStatus(true);
 
@@ -119,7 +147,7 @@ function setStatus(active) {
   } else {
     statusElement.classList.remove('active');
     statusElement.classList.add('inactive');
-    statusElement.querySelector('.status-text').textContent = 'Not on Crunchyroll';
+    statusElement.querySelector('.status-text').textContent = 'Not on a supported site';
   }
 }
 
@@ -319,6 +347,98 @@ feedbackSubmit.addEventListener('click', async () => {
     feedbackSubmit.disabled = false;
     feedbackSubmit.textContent = 'Submit';
   }
+});
+
+// Auto-skip toggle
+autoSkipCheckbox.addEventListener('change', () => {
+  chrome.storage.sync.set({ autoSkip: autoSkipCheckbox.checked });
+});
+
+// Open the full stats dashboard (options page)
+document.getElementById('statsLink').addEventListener('click', () => {
+  chrome.runtime.openOptionsPage();
+});
+
+// Tip jar (PayPal)
+document.querySelectorAll('.tip-btn').forEach((btn) => {
+  btn.addEventListener('click', (e) => {
+    e.preventDefault();
+    chrome.tabs.create({ url: paypalUrl(btn.dataset.amount) });
+  });
+});
+
+// Shortcut editor
+const shortcutsTrigger = document.getElementById('shortcutsTrigger');
+const shortcutsPanel = document.getElementById('shortcutsPanel');
+let capturingAction = null;
+
+shortcutsTrigger.addEventListener('click', () => {
+  shortcutsPanel.classList.toggle('open');
+});
+
+document.getElementById('openGlobalShortcuts').addEventListener('click', (e) => {
+  e.preventDefault();
+  chrome.tabs.create({ url: 'chrome://extensions/shortcuts' });
+});
+
+function codeToLabel(code) {
+  if (!code) return '?';
+  if (code.startsWith('Key')) return code.slice(3);
+  if (code.startsWith('Digit')) return code.slice(5);
+  const map = {
+    Period: '.', Comma: ',', Slash: '/', Semicolon: ';', Quote: "'",
+    BracketLeft: '[', BracketRight: ']', Backslash: '\\', Minus: '-', Equal: '=',
+    Space: 'Space', ArrowUp: '↑', ArrowDown: '↓', ArrowLeft: '←', ArrowRight: '→',
+    Backquote: '`'
+  };
+  return map[code] || code;
+}
+
+function shortcutLabel(sc) {
+  if (!sc || !sc.code) return 'None';
+  const parts = [];
+  if (sc.ctrl) parts.push('Ctrl');
+  if (sc.alt) parts.push('Alt');
+  if (sc.shift) parts.push('Shift');
+  if (sc.meta) parts.push('⌘');
+  parts.push(codeToLabel(sc.code));
+  return parts.join(' + ');
+}
+
+function renderShortcuts() {
+  document.querySelectorAll('.shortcut-key').forEach((btn) => {
+    const action = btn.dataset.action;
+    btn.textContent = capturingAction === action ? 'Press keys…' : shortcutLabel(shortcuts[action]);
+    btn.classList.toggle('capturing', capturingAction === action);
+  });
+}
+
+document.querySelectorAll('.shortcut-key').forEach((btn) => {
+  btn.addEventListener('click', () => {
+    capturingAction = capturingAction === btn.dataset.action ? null : btn.dataset.action;
+    renderShortcuts();
+  });
+});
+
+// Capture the next key combo while a shortcut is being recorded.
+document.addEventListener('keydown', (e) => {
+  if (!capturingAction) return;
+  const mods = ['Shift', 'Control', 'Alt', 'Meta', 'ShiftLeft', 'ShiftRight',
+    'ControlLeft', 'ControlRight', 'AltLeft', 'AltRight', 'MetaLeft', 'MetaRight'];
+  e.preventDefault();
+  if (e.key === 'Escape') { capturingAction = null; renderShortcuts(); return; }
+  if (mods.includes(e.code)) return; // wait for a non-modifier key
+
+  shortcuts[capturingAction] = {
+    code: e.code,
+    shift: e.shiftKey,
+    ctrl: e.ctrlKey,
+    alt: e.altKey,
+    meta: e.metaKey
+  };
+  capturingAction = null;
+  chrome.storage.sync.set({ shortcuts });
+  renderShortcuts();
 });
 
 // Initialize on load

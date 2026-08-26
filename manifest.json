@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "Crunchyroll Speed Controller",
-  "version": "1.1.0",
-  "description": "Control video playback speed on Crunchyroll with customizable keyboard shortcuts and on-screen indicator.",
+  "version": "2.0.0",
+  "description": "Control playback speed on Crunchyroll & HIDIVE, auto-skip intros/outros, custom shortcuts, and track time saved.",
   "icons": {
     "16": "icons/icon16.png",
     "32": "icons/icon32.png",
@@ -12,6 +12,7 @@
   "permissions": ["storage"],
   "host_permissions": [
     "*://*.crunchyroll.com/*",
+    "*://*.hidive.com/*",
     "https://script.google.com/*",
     "https://script.googleusercontent.com/*"
   ],
@@ -25,13 +26,17 @@
     },
     "default_title": "Crunchyroll Speed Controller"
   },
+  "options_ui": {
+    "page": "options/options.html",
+    "open_in_tab": true
+  },
   "background": {
     "service_worker": "background/service-worker.js"
   },
   "content_scripts": [
     {
-      "matches": ["*://*.crunchyroll.com/*"],
-      "js": ["content/content.js"],
+      "matches": ["*://*.crunchyroll.com/*", "*://*.hidive.com/*"],
+      "js": ["content/sites.js", "content/content.js"],
       "css": ["content/content.css"],
       "run_at": "document_idle",
       "all_frames": true

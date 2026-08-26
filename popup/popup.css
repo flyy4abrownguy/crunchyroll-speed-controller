@@ -307,8 +307,167 @@ h1 {
   border-color: #F47521;
 }
 
+/* Shortcut editor */
+.shortcuts-trigger {
+  text-align: center;
+  font-size: 11px;
+  color: #888;
+  cursor: pointer;
+  padding: 4px 0;
+  transition: color 0.15s ease;
+}
+
+.shortcuts-trigger:hover {
+  color: #ccc;
+}
+
+.shortcuts-panel {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s ease;
+}
+
+.shortcuts-panel.open {
+  max-height: 220px;
+}
+
+.shortcut-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 0;
+  font-size: 12px;
+  color: #ccc;
+}
+
+.shortcut-key {
+  min-width: 90px;
+  padding: 4px 8px;
+  background: #2a2c31;
+  border: 1px solid #3a3c41;
+  border-radius: 6px;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.shortcut-key:hover {
+  border-color: #4a4c51;
+}
+
+.shortcut-key.capturing {
+  border-color: #F47521;
+  color: #F47521;
+}
+
+.shortcut-hint {
+  font-size: 10px;
+  color: #666;
+  margin-top: 6px;
+  line-height: 1.4;
+}
+
+.shortcut-hint a {
+  color: #F47521;
+  text-decoration: none;
+}
+
+/* Stats display is now clickable */
+.stats-display {
+  cursor: pointer;
+  border-radius: 6px;
+  transition: background 0.15s ease;
+}
+
+.stats-display:hover {
+  background: rgba(244, 117, 33, 0.08);
+}
+
+.stats-more {
+  display: block;
+  font-size: 10px;
+  color: #888;
+  font-weight: 400;
+  margin-top: 2px;
+}
+
 footer {
   text-align: center;
+  margin-top: 6px;
+}
+
+.support-cta {
+  margin-top: 10px;
+  padding: 16px 14px;
+  background: linear-gradient(150deg, rgba(255, 140, 66, 0.20), rgba(244, 117, 33, 0.06) 70%);
+  border: 1px solid rgba(244, 117, 33, 0.3);
+  border-radius: 14px;
+  text-align: center;
+}
+
+.support-cta-text strong {
+  display: block;
+  font-size: 14px;
+  color: #fff;
+  margin-bottom: 3px;
+}
+
+.support-cta-text span {
+  display: block;
+  font-size: 11px;
+  color: #c9c9c9;
+  margin-bottom: 12px;
+}
+
+.tip-buttons {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 7px;
+}
+
+.tip-btn {
+  padding: 10px 4px;
+  background: linear-gradient(180deg, #F98A3C, #F47521);
+  border-radius: 10px;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+  text-align: center;
+  text-decoration: none;
+  box-shadow: 0 2px 6px rgba(244, 117, 33, 0.35);
+  transition: transform 0.12s ease, box-shadow 0.12s ease, background 0.15s ease;
+}
+
+.tip-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 5px 14px rgba(244, 117, 33, 0.5);
+}
+
+.tip-btn.custom {
+  background: transparent;
+  border: 1px solid rgba(244, 117, 33, 0.55);
+  color: #f9a15f;
+  font-weight: 600;
+  box-shadow: none;
+}
+
+.tip-btn.custom:hover {
+  background: rgba(244, 117, 33, 0.14);
+  transform: translateY(-1px);
+  box-shadow: none;
+}
+
+.tip-note {
+  display: block;
+  margin-top: 11px;
+  font-size: 10px;
+  color: #999;
+}
+
+.footer-links {
+  margin-top: 10px;
 }
 
 .shortcuts-hint {

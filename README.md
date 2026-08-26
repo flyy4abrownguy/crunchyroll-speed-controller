@@ -18,7 +18,7 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/manifest-v3-blue" alt="Manifest V3">
-  <img src="https://img.shields.io/badge/version-1.1.0-orange" alt="Version">
+  <img src="https://img.shields.io/badge/version-2.0.0-orange" alt="Version">
   <img src="https://img.shields.io/badge/license-MIT-green" alt="License">
   <img src="https://img.shields.io/badge/chrome-extension-yellow" alt="Chrome Extension">
 </p>
@@ -34,13 +34,15 @@
 | Feature | Description |
 |---------|-------------|
 | **Speed Control** | Adjust playback from 0.25x to 4.0x |
+| **Auto-Skip Intro/Outro** | Automatically skips openings, endings, recaps & credits |
+| **Multi-Site** | Works on both Crunchyroll and HIDIVE |
+| **Stats Dashboard** | Full page with time-saved graph, watch streaks, top series & milestone badges |
+| **Custom Shortcuts** | Rebind keyboard shortcuts right from the popup |
 | **Quick Buttons** | One-click presets: 0.5x, 0.75x, 1.0x, 1.25x, 1.5x, 2.0x |
-| **Keyboard Shortcuts** | Control speed without leaving fullscreen |
 | **On-Screen Indicator** | See current speed with auto-hiding overlay |
 | **Remember Speed** | Persists your preferred speed across sessions |
 | **Per-Series Speed** | Remember different speeds for different anime |
 | **Customizable Step** | Choose speed increment: 0.05x, 0.10x, or 0.25x |
-| **Time Saved Stats** | See how much time you've saved speed-watching |
 | **Send Feedback** | Built-in feedback form to report bugs or request features |
 | **Dark Theme** | Seamlessly matches Crunchyroll's aesthetic |
 
@@ -99,7 +101,14 @@ Click the extension icon while on Crunchyroll to open the control panel:
 | **Remember speed** | Save your preferred speed across sessions |
 | **Show indicator** | Toggle the on-screen speed display |
 | **Per-series speed** | Remember different speeds per anime series |
+| **Auto-skip intro/outro** | Automatically click Skip Intro / Skip Outro buttons |
 | **Speed step** | Choose fine control increment (0.05x, 0.10x, 0.25x) |
+
+Click the **time-saved counter** at the bottom of the popup to open the full **Stats Dashboard** — a 30-day activity graph, watch streaks, your top series, and milestone badges.
+
+### Customizing Shortcuts
+
+Click **Customize shortcuts** in the popup to rebind the in-page keys: click a shortcut, then press your new combination. These work while watching without leaving the page.
 
 ---
 
@@ -132,14 +141,19 @@ These work even when the page isn't focused. Customize them at `chrome://extensi
 crunchyroll-speed-controller/
 ├── manifest.json        # Extension configuration (Manifest V3)
 ├── background/
-│   └── service-worker.js    # Handles keyboard commands
+│   └── service-worker.js    # Commands, install/update migrations
 ├── content/
-│   ├── content.js       # Video control & speed indicator
-│   └── content.css      # Indicator overlay styles
+│   ├── sites.js         # Per-site config (Crunchyroll, HIDIVE)
+│   ├── content.js       # Speed control, auto-skip, stats, shortcuts
+│   └── content.css      # Indicator & skip-toast styles
 ├── popup/
 │   ├── popup.html       # Popup UI structure
 │   ├── popup.css        # Dark theme styling
 │   └── popup.js         # Popup logic & settings
+├── options/
+│   ├── options.html     # Stats dashboard
+│   ├── options.css      # Dashboard styling
+│   └── options.js       # Stats, streaks, badges, shortcuts
 ├── icons/               # Extension icons (16, 32, 48, 128px)
 ├── store-assets/        # Chrome Web Store graphics
 └── privacy-policy.md    # Privacy policy
@@ -172,10 +186,18 @@ Contributions are welcome! Feel free to:
 5. Open a Pull Request
 
 ### Ideas for Contributions
-- [ ] Custom keyboard shortcut configuration in popup
-- [ ] Support for other streaming sites (HiDive, etc.)
-- [ ] Detailed statistics dashboard with time-saved graphs
+- [x] Custom keyboard shortcut configuration in popup
+- [x] Support for other streaming sites (HIDIVE)
+- [x] Detailed statistics dashboard with time-saved graphs
+- [x] Auto-skip intros/outros
+- [ ] Support for more sites (VRV, etc.)
 - [ ] Subtitle sync adjustment for high speeds
+
+---
+
+## Support
+
+This extension is free and always will be. If it's saved you some time, the popup (and the Stats Dashboard) has **quick-tip buttons** — $1 / $3 / $5 or a custom amount — that open a secure PayPal express checkout with the amount pre-filled. Tips are optional and keep the project maintained.
 
 ---
 

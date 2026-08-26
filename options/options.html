@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Speed Controller — Stats</title>
+  <link rel="stylesheet" href="options.css">
+</head>
+<body>
+  <div class="wrap">
+    <header class="page-header">
+      <div>
+        <h1>Your Watch Stats</h1>
+        <p class="subtitle">Every second you've reclaimed with Speed Controller.</p>
+      </div>
+      <div class="streak-badge" id="streakBadge">
+        <span class="flame">&#128293;</span>
+        <span class="streak-num" id="streakNum">0</span>
+        <span class="streak-label">day streak</span>
+      </div>
+    </header>
+
+    <section class="cards">
+      <div class="card highlight">
+        <span class="card-value" id="timeSaved">0m</span>
+        <span class="card-label">Time saved by speed</span>
+      </div>
+      <div class="card">
+        <span class="card-value" id="timeSkipped">0m</span>
+        <span class="card-label">Time saved by auto-skip</span>
+      </div>
+      <div class="card">
+        <span class="card-value" id="introsSkipped">0</span>
+        <span class="card-label">Intros / outros skipped</span>
+      </div>
+      <div class="card">
+        <span class="card-value" id="timeWatched">0m</span>
+        <span class="card-label">Total watched</span>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head">
+        <h2>Last 30 days</h2>
+        <span class="panel-sub" id="longestStreak">Longest streak: 0 days</span>
+      </div>
+      <div class="chart" id="chart"></div>
+      <div class="chart-empty" id="chartEmpty" hidden>Start watching to see your activity here.</div>
+    </section>
+
+    <section class="panel">
+      <h2>Top series</h2>
+      <div class="series-list" id="seriesList"></div>
+      <div class="chart-empty" id="seriesEmpty" hidden>No series tracked yet.</div>
+    </section>
+
+    <section class="panel">
+      <h2>Milestones</h2>
+      <div class="badges" id="badges"></div>
+    </section>
+
+    <section class="panel">
+      <h2>Keyboard shortcuts</h2>
+      <p class="panel-sub">Click a key, then press your combo. Press Esc to cancel.</p>
+      <div class="shortcut-grid" id="shortcutGrid">
+        <div class="shortcut-row" data-action="increaseSpeed"><span>Faster</span><button class="shortcut-key" data-action="increaseSpeed"></button></div>
+        <div class="shortcut-row" data-action="decreaseSpeed"><span>Slower</span><button class="shortcut-key" data-action="decreaseSpeed"></button></div>
+        <div class="shortcut-row" data-action="resetSpeed"><span>Reset speed</span><button class="shortcut-key" data-action="resetSpeed"></button></div>
+        <div class="shortcut-row" data-action="toggleIndicator"><span>Toggle indicator</span><button class="shortcut-key" data-action="toggleIndicator"></button></div>
+      </div>
+      <p class="panel-sub">Global shortcuts work even outside the page. <a href="#" id="openGlobalShortcuts">Edit them in Chrome &rsaquo;</a></p>
+    </section>
+
+    <section class="support">
+      <div class="support-emoji">&#9749;</div>
+      <h2>Enjoying the extension?</h2>
+      <p>It's free and always will be. If it's saved you some time, a small tip keeps it brewing. &#9829;</p>
+      <div class="tip-buttons">
+        <a href="#" class="tip-btn" data-amount="1">$1</a>
+        <a href="#" class="tip-btn" data-amount="3">$3</a>
+        <a href="#" class="tip-btn" data-amount="5">$5</a>
+        <a href="#" class="tip-btn custom" data-amount="">Other</a>
+      </div>
+      <p class="tip-note">&#128274; Secure express checkout via PayPal</p>
+    </section>
+
+    <footer class="page-footer">
+      <span id="resetStats" class="reset-stats">Reset all stats</span>
+    </footer>
+  </div>
+
+  <script src="options.js"></script>
+</body>
+</html>

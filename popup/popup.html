@@ -73,6 +73,11 @@
         <input type="checkbox" id="perSeriesSpeed">
         <span class="toggle"></span>
       </label>
+      <label class="setting-item">
+        <span>Auto-skip intro/outro</span>
+        <input type="checkbox" id="autoSkip" checked>
+        <span class="toggle"></span>
+      </label>
       <div class="setting-item">
         <span>Speed step</span>
         <select id="speedStepSelect" class="speed-step-select">
@@ -83,15 +88,46 @@
       </div>
     </section>
 
-    <section class="stats-display">
+    <div class="shortcuts-trigger" id="shortcutsTrigger">Customize shortcuts &#9662;</div>
+    <section class="shortcuts-panel" id="shortcutsPanel">
+      <div class="shortcut-row" data-action="increaseSpeed">
+        <span>Faster</span><button class="shortcut-key" data-action="increaseSpeed"></button>
+      </div>
+      <div class="shortcut-row" data-action="decreaseSpeed">
+        <span>Slower</span><button class="shortcut-key" data-action="decreaseSpeed"></button>
+      </div>
+      <div class="shortcut-row" data-action="resetSpeed">
+        <span>Reset</span><button class="shortcut-key" data-action="resetSpeed"></button>
+      </div>
+      <div class="shortcut-row" data-action="toggleIndicator">
+        <span>Toggle indicator</span><button class="shortcut-key" data-action="toggleIndicator"></button>
+      </div>
+      <div class="shortcut-hint" id="shortcutHint">Click a key, then press your combo. <a href="#" id="openGlobalShortcuts">Edit global shortcuts &rsaquo;</a></div>
+    </section>
+
+    <section class="stats-display" id="statsLink" title="View full stats">
       <span class="stats-icon">&#9201;</span><span class="stats-value" id="timeSaved">0m</span> saved
+      <span class="stats-more">View stats &rsaquo;</span>
+    </section>
+
+    <section class="support-cta">
+      <div class="support-cta-text">
+        <strong>&#9749; Enjoying the extension?</strong>
+        <span>It's free — a small tip keeps it brewing</span>
+      </div>
+      <div class="tip-buttons">
+        <a href="#" class="tip-btn" data-amount="1">$1</a>
+        <a href="#" class="tip-btn" data-amount="3">$3</a>
+        <a href="#" class="tip-btn" data-amount="5">$5</a>
+        <a href="#" class="tip-btn custom" data-amount="">Other</a>
+      </div>
+      <span class="tip-note">&#128274; Secure checkout via PayPal</span>
     </section>
 
     <footer>
-      <p class="shortcuts-hint">
-        Shortcuts: <kbd>Shift</kbd>+<kbd>&gt;</kbd> / <kbd>&lt;</kbd> to adjust
-      </p>
-      <div class="feedback-trigger" id="feedbackTrigger">Send Feedback</div>
+      <div class="footer-links">
+        <span class="feedback-trigger" id="feedbackTrigger">Send Feedback</span>
+      </div>
     </footer>
 
     <section class="feedback-panel" id="feedbackPanel">

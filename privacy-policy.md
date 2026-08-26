@@ -1,10 +1,10 @@
 # Privacy Policy for Crunchyroll Speed Controller
 
-**Last Updated:** March 2026
+**Last Updated:** July 2026
 
 ## Overview
 
-Crunchyroll Speed Controller is a browser extension that allows users to control video playback speed on Crunchyroll.com. This privacy policy explains how the extension handles user data.
+Crunchyroll Speed Controller is a browser extension that lets users control video playback speed and auto-skip intros/outros on supported anime streaming sites (Crunchyroll and HIDIVE). This privacy policy explains how the extension handles user data.
 
 ## Data Collection
 
@@ -27,7 +27,9 @@ The extension uses Chrome's built-in storage API (`chrome.storage.sync`) to save
 - **Show indicator preference** - Whether to display the on-screen speed indicator
 - **Speed step preference** - Your chosen increment for speed adjustments
 - **Per-series speed settings** - Speed preferences saved per anime series (if enabled)
-- **Time saved statistics** - Cumulative time saved from speed-watching (stored locally only via `chrome.storage.local`)
+- **Auto-skip preference** - Whether intros/outros are skipped automatically
+- **Custom keyboard shortcuts** - Your rebound in-page shortcut keys
+- **Watch statistics** - Cumulative time saved, time skipped, intros skipped, per-series totals, and daily activity used to power the stats dashboard and streaks (stored locally only via `chrome.storage.local`, never synced or transmitted)
 
 This data:
 - Is stored locally in your browser
@@ -40,12 +42,14 @@ This data:
 ### Storage Permission
 Used solely to save your speed preferences locally so they persist between browser sessions.
 
-### Host Permission (crunchyroll.com)
-Required to inject the content script that controls video playback speed on Crunchyroll's website. The extension only runs on crunchyroll.com domains.
+### Host Permissions (crunchyroll.com, hidive.com)
+Required to inject the content script that controls video playback speed and auto-skips intros/outros on supported sites. The extension only runs on crunchyroll.com and hidive.com domains.
 
 ## Third-Party Services
 
-The optional feedback feature sends user-submitted feedback to a Google Sheet via Google Apps Script. This only occurs when the user explicitly clicks "Submit" in the feedback form. No data is sent automatically or without user action.
+**Feedback (Google Apps Script).** The optional feedback feature sends user-submitted feedback to a Google Sheet via Google Apps Script. This only occurs when the user explicitly clicks "Submit" in the feedback form. Only the message text you type is sent — no identifiers, browsing data, or page content. No data is sent automatically or without user action.
+
+**Tip jar (PayPal).** The popup and stats dashboard include optional tip buttons. Clicking one simply opens a PayPal.me page in a new browser tab; the extension does not process, handle, or receive any payment information, and no data about you is transmitted by the extension when you click. Anything that happens on PayPal's site is governed by [PayPal's own privacy policy](https://www.paypal.com/us/legalhub/privacy-full). You never need to tip to use any feature — the extension is fully functional for free.
 
 ## Changes to This Policy
 

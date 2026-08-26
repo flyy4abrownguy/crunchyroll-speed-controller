@@ -1,12 +1,15 @@
 // Crunchyroll Speed Controller - Service Worker
 
+// Supported streaming sites (keep in sync with manifest + content/sites.js).
+const SUPPORTED_HOSTS = ['crunchyroll.com', 'hidive.com'];
+
 // Handle keyboard commands
 chrome.commands.onCommand.addListener(async (command) => {
   // Get the active tab
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
 
-  if (!tab || !tab.url || !tab.url.includes('crunchyroll.com')) {
-    return; // Only work on Crunchyroll
+  if (!tab || !tab.url || !SUPPORTED_HOSTS.some((h) => tab.url.includes(h))) {
+    return; // Only work on supported sites
   }
 
   let action;
@@ -35,47 +38,57 @@ chrome.commands.onCommand.addListener(async (command) => {
   }
 });
 
+const DEFAULT_SHORTCUTS = {
+  increaseSpeed:   { code: 'Period', shift: true, ctrl: false, alt: false, meta: false },
+  decreaseSpeed:   { code: 'Comma',  shift: true, ctrl: false, alt: false, meta: false },
+  resetSpeed:      { code: 'Slash',  shift: true, ctrl: false, alt: false, meta: false },
+  toggleIndicator: { code: 'KeyV',   shift: true, ctrl: false, alt: false, meta: false }
+};
+
+const DEFAULT_SETTINGS = {
+  speed: 1.0,
+  rememberSpeed: true,
+  showIndicator: true,
+  speedStep: 0.25,
+  perSeriesSpeed: false,
+  seriesSpeeds: {},
+  autoSkip: true,
+  shortcuts: DEFAULT_SHORTCUTS
+};
+
+const DEFAULT_STATS = {
+  totalTimeSavedSec: 0,
+  totalTimeWatchedSec: 0,
+  introsSkipped: 0,
+  timeSkippedSec: 0
+};
+
 // Handle extension installation/update
 chrome.runtime.onInstalled.addListener((details) => {
-  const defaultSettings = {
-    speed: 1.0,
-    rememberSpeed: true,
-    showIndicator: true,
-    speedStep: 0.25,
-    perSeriesSpeed: false,
-    seriesSpeeds: {}
-  };
-
   if (details.reason === 'install') {
-    // Set default settings on first install
-    chrome.storage.sync.set(defaultSettings);
-    chrome.storage.local.set({
-      stats: { totalTimeSavedSec: 0, totalTimeWatchedSec: 0 }
-    });
-
+    chrome.storage.sync.set(DEFAULT_SETTINGS);
+    chrome.storage.local.set({ stats: DEFAULT_STATS, seriesStats: {}, daily: {} });
     console.log('Crunchyroll Speed Controller installed');
   } else if (details.reason === 'update') {
-    // Migrate storage: add new keys without overwriting existing settings
+    // Add any new setting keys without overwriting existing choices.
     chrome.storage.sync.get(null, (existing) => {
       const updates = {};
-      for (const [key, value] of Object.entries(defaultSettings)) {
-        if (!(key in existing)) {
-          updates[key] = value;
-        }
+      for (const [key, value] of Object.entries(DEFAULT_SETTINGS)) {
+        if (!(key in existing)) updates[key] = value;
       }
-      if (Object.keys(updates).length > 0) {
-        chrome.storage.sync.set(updates);
-      }
-    });
-    chrome.storage.local.get('stats', (result) => {
-      if (!result.stats) {
-        chrome.storage.local.set({
-          stats: { totalTimeSavedSec: 0, totalTimeWatchedSec: 0 }
-        });
-      }
+      if (Object.keys(updates).length > 0) chrome.storage.sync.set(updates);
     });
 
-    console.log('Crunchyroll Speed Controller updated to version', chrome.runtime.getManifest().version);
+    // Migrate stats: merge missing keys, add new local collections.
+    chrome.storage.local.get(['stats', 'seriesStats', 'daily'], (result) => {
+      const merged = { ...DEFAULT_STATS, ...(result.stats || {}) };
+      const updates = { stats: merged };
+      if (!result.seriesStats) updates.seriesStats = {};
+      if (!result.daily) updates.daily = {};
+      chrome.storage.local.set(updates);
+    });
+
+    console.log('Crunchyroll Speed Controller updated to', chrome.runtime.getManifest().version);
   }
 });
 
