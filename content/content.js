@@ -31,12 +31,18 @@
   let showIndicator = true;
   let speedStep = 0.25;
   let rememberSpeed = true;
+  // Last speed the user chose anywhere (sync `speed`); used for shows with no
+  // saved per-show speed.
+  let globalSpeed = 1.0;
   // Per-show memory is always on in v2.1 (the UI toggle is gone); a missing
   // key must never disable it.
   let perSeriesSpeed = true;
   let seriesSpeeds = {};
   // Path whose per-show speed has been applied (or overridden by the user).
   let appliedSeriesPath = null;
+  // A user speed change made before the series slug resolved: {path, speed}.
+  // Written to seriesSpeeds once the real slug resolves on the same path.
+  let pendingSeriesSave = null;
   let autoSkip = true;
   let shortcuts = { ...DEFAULT_SHORTCUTS };
 
@@ -72,6 +78,7 @@
     showIndicator = settings.showIndicator;
     speedStep = settings.speedStep;
     rememberSpeed = settings.rememberSpeed;
+    globalSpeed = settings.speed;
     perSeriesSpeed = settings.perSeriesSpeed;
     seriesSpeeds = settings.seriesSpeeds || {};
     autoSkip = settings.autoSkip;
@@ -328,12 +335,28 @@
   // slug has resolved. A user speed change on the path also marks it applied,
   // so the user's choice wins over a late per-show apply.
   function applySeriesSpeedIfReady() {
-    if (!(rememberSpeed && perSeriesSpeed)) return;
+    const path = location.pathname;
+    if (pendingSeriesSave && (pendingSeriesSave.path !== path || !rememberSpeed)) pendingSeriesSave = null;
+    if (!rememberSpeed) return;
     const info = site.getSeriesInfo();
     if (!info.resolved) return;
-    if (appliedSeriesPath === location.pathname) return;
-    appliedSeriesPath = location.pathname;
+
+    // The slug just resolved after the user picked a speed: save it for the show.
+    if (pendingSeriesSave) {
+      if (info.slug) saveSeriesSpeed(info.slug, pendingSeriesSave.speed);
+      pendingSeriesSave = null;
+    }
+
+    if (!perSeriesSpeed) return;
+    if (appliedSeriesPath === path) return;
+    appliedSeriesPath = path;
     if (hasSeriesSpeed(info.slug)) setVideoSpeed(seriesSpeeds[info.slug]);
+    else setVideoSpeed(globalSpeed, { showUI: false }); // no saved speed: use the global one
+  }
+
+  function saveSeriesSpeed(slug, speed) {
+    seriesSpeeds = CSC_LOGIC.withSeriesSpeed(seriesSpeeds, slug, speed, CSC_LOGIC.SERIES_SPEED_CAP);
+    chrome.storage.sync.set({ seriesSpeeds });
   }
 
   // Own-property check, so a slug like "constructor" never reads the prototype.
@@ -362,10 +385,18 @@
       slug: info.slug,
       slugResolved: info.resolved
     });
-    if (plan.global) chrome.storage.sync.set({ speed });
-    if (plan.series) {
-      seriesSpeeds = CSC_LOGIC.withSeriesSpeed(seriesSpeeds, info.slug, speed, CSC_LOGIC.SERIES_SPEED_CAP);
-      chrome.storage.sync.set({ seriesSpeeds });
+    if (plan.global) {
+      globalSpeed = speed;
+      chrome.storage.sync.set({ speed });
+    }
+    if (plan.series) saveSeriesSpeed(info.slug, speed);
+    if (save) {
+      // Slug not resolved yet (Crunchyroll watch page before its series link
+      // renders): hold the per-show save until it does. Never key by the
+      // episode-slug fallback.
+      pendingSeriesSave = plan.global && !info.resolved
+        ? { path: location.pathname, speed }
+        : null;
     }
     return speed;
   }
@@ -429,6 +460,7 @@
     }
     if (changes.speedStep) speedStep = changes.speedStep.newValue;
     if (changes.rememberSpeed) rememberSpeed = changes.rememberSpeed.newValue !== false;
+    if (changes.speed && typeof changes.speed.newValue === 'number') globalSpeed = changes.speed.newValue;
     if (changes.perSeriesSpeed) perSeriesSpeed = changes.perSeriesSpeed.newValue !== false;
     if (changes.autoSkip) autoSkip = changes.autoSkip.newValue;
     if (changes.shortcuts) shortcuts = { ...DEFAULT_SHORTCUTS, ...(changes.shortcuts.newValue || {}) };
