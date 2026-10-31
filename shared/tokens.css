@@ -1,0 +1,69 @@
+/* Speed Controller - Shared design tokens
+   One place for colors, spacing, radius and type. Used by the popup and the
+   options page. Orange (--accent) is the only accent: current speed (when not
+   1x), the active preset, on-state toggles and primary buttons. */
+
+:root {
+  /* Accent */
+  --accent: #F47521;
+  --accent-hover: #ff8538;
+  --accent-soft: rgba(244, 117, 33, 0.14);
+  --on-accent: #ffffff;
+
+  /* Surfaces (dark, #141519 / #0f1013 family) */
+  --bg: #141519;
+  --bg-deep: #0f1013;
+  --surface: #1b1c21;
+  --surface-2: #24262c;
+  --surface-3: #2e3037;
+  --border: #2a2c31;
+  --border-strong: #3a3c41;
+
+  /* Text */
+  --text: #f4f4f5;
+  --text-muted: #9a9ca3;
+  --text-faint: #6c6e75;
+
+  /* Status (not accents: small dots and messages only) */
+  --positive: #4caf50;
+  --negative: #f2665a;
+
+  /* Focus ring stays neutral so orange keeps its meaning */
+  --focus-ring: 0 0 0 2px var(--bg), 0 0 0 4px rgba(244, 244, 245, 0.45);
+
+  /* Spacing scale (4px base) */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+
+  /* Radius */
+  --radius-sm: 6px;
+  --radius: 10px;
+  --radius-lg: 14px;
+  --radius-pill: 999px;
+
+  /* Type */
+  --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+  --fs-xs: 11px;
+  --fs-sm: 12px;
+  --fs-md: 13px;
+  --fs-lg: 15px;
+  --fs-xl: 22px;
+  --fs-display: 44px;
+  --fw-regular: 400;
+  --fw-medium: 500;
+  --fw-semibold: 600;
+  --fw-bold: 700;
+
+  /* Motion */
+  --ease: 0.15s ease;
+
+  /* Icons */
+  --icon-sm: 14px;
+  --icon: 16px;
+  --icon-lg: 18px;
+}

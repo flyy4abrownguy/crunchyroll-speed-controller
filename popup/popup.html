@@ -3,154 +3,133 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Crunchyroll Speed Controller</title>
+  <title>Speed Controller</title>
+  <link rel="stylesheet" href="../shared/tokens.css">
   <link rel="stylesheet" href="popup.css">
 </head>
 <body>
-  <div class="container">
-    <header>
-      <h1>Speed Controller</h1>
-      <div class="status" id="status">
-        <span class="status-dot"></span>
-        <span class="status-text">Checking...</span>
+  <main class="popup">
+    <!-- Watching: supported site with a video -->
+    <section id="watching" class="state" hidden>
+      <header class="show-line">
+        <div class="show-info">
+          <div id="showName" class="show-name"></div>
+          <div class="site-row">
+            <span id="siteLabel" class="site-label"></span>
+          </div>
+        </div>
+        <div class="header-end">
+          <span class="status"><span class="status-dot"></span>Active</span>
+        </div>
+      </header>
+
+      <div class="speed-row">
+        <button type="button" id="decreaseBtn" class="round-btn" aria-label="Slower" title="Slower">
+          <span class="icon" data-icon="minus"></span>
+        </button>
+        <div id="speedReadout" class="speed-readout" aria-live="polite">
+          <span id="speedValue" class="speed-value">1</span><span class="speed-x">x</span>
+        </div>
+        <button type="button" id="increaseBtn" class="round-btn" aria-label="Faster" title="Faster">
+          <span class="icon" data-icon="plus"></span>
+        </button>
       </div>
-    </header>
 
-    <section class="speed-display">
-      <span class="speed-value" id="speedValue">1.00</span>
-      <span class="speed-label">x</span>
-    </section>
+      <div id="presets" class="presets" role="group" aria-label="Speed presets"></div>
 
-    <section class="slider-section">
-      <input
-        type="range"
-        id="speedSlider"
-        min="0.25"
-        max="4"
-        step="0.05"
-        value="1"
-      >
-      <div class="slider-labels">
-        <span>0.25x</span>
-        <span>4.0x</span>
+      <div id="seriesLine" class="series-line" hidden>
+        <span class="series-text">
+          <span id="seriesIcon" class="icon icon-sm" data-icon="pin"></span>
+          <span id="seriesText"></span>
+        </span>
+        <button type="button" id="useForAllBtn" class="text-btn">Use for all shows</button>
       </div>
+
+      <div class="divider"></div>
+
+      <label class="toggle-row">
+        <span>Auto-skip intros</span>
+        <input type="checkbox" class="autoskip-toggle">
+        <span class="switch" aria-hidden="true"></span>
+      </label>
+
+      <footer class="footer">
+        <span class="week-saved">
+          <span class="icon icon-sm" data-icon="clock"></span>
+          <span id="weekSaved"></span>
+        </span>
+        <span class="footer-actions">
+          <button type="button" id="statsBtn" class="icon-btn" aria-label="Stats" title="Stats">
+            <span class="icon" data-icon="chart"></span>
+          </button>
+          <button type="button" id="settingsBtn" class="icon-btn" aria-label="Settings" title="Settings">
+            <span class="icon" data-icon="settings"></span>
+          </button>
+        </span>
+      </footer>
     </section>
 
-    <section class="quick-buttons">
-      <button class="quick-btn" data-speed="0.5">0.5x</button>
-      <button class="quick-btn" data-speed="0.75">0.75x</button>
-      <button class="quick-btn active" data-speed="1">1.0x</button>
-      <button class="quick-btn" data-speed="1.25">1.25x</button>
-      <button class="quick-btn" data-speed="1.5">1.5x</button>
-      <button class="quick-btn" data-speed="2">2.0x</button>
+    <!-- Idle: any other tab, or a supported site without a video -->
+    <section id="idle" class="state" hidden>
+      <header class="idle-header">
+        <h1>Speed controller</h1>
+        <div class="header-end">
+          <button type="button" id="idleSettingsBtn" class="icon-btn" aria-label="Settings" title="Settings">
+            <span class="icon" data-icon="settings"></span>
+          </button>
+        </div>
+      </header>
+
+      <div class="card stats-card">
+        <div class="card-label">Time saved this week</div>
+        <div id="idleWeekSaved" class="big-number">0s</div>
+        <div id="idleWeekMeta" class="meta"></div>
+      </div>
+
+      <div class="tiles">
+        <div class="tile">
+          <div class="tile-label">All time</div>
+          <div id="allTimeSaved" class="tile-value">0s</div>
+        </div>
+        <div id="topShowTile" class="tile" hidden>
+          <div class="tile-label">Top show</div>
+          <div id="topShowName" class="tile-value"></div>
+        </div>
+      </div>
+
+      <label class="toggle-row">
+        <span>Auto-skip intros</span>
+        <input type="checkbox" class="autoskip-toggle">
+        <span class="switch" aria-hidden="true"></span>
+      </label>
+
+      <p id="idleHint" class="hint"></p>
+      <button type="button" id="notWorkingLink" class="text-btn hint-link" hidden>Speed not working? Tell us</button>
     </section>
 
-    <section class="fine-controls">
-      <button class="control-btn" id="decreaseBtn" title="Decrease speed">
-        <span id="decreaseLabel">-0.25</span>
+    <!-- One-time thank-you prompt (either state) -->
+    <aside id="milestoneCard" class="milestone" hidden>
+      <span class="icon milestone-icon" data-icon="trophy"></span>
+      <div class="milestone-body">
+        <div id="milestoneTitle" class="milestone-title"></div>
+        <p class="milestone-text">Free forever. If it helped, a tip or a review goes a long way.</p>
+        <div class="milestone-actions">
+          <button type="button" id="tipBtn" class="btn btn-primary">
+            <span class="icon icon-sm" data-icon="heart"></span>Tip
+          </button>
+          <button type="button" id="rateBtn" class="btn">
+            <span class="icon icon-sm" data-icon="star"></span>Rate
+          </button>
+        </div>
+      </div>
+      <button type="button" id="dismissMilestone" class="icon-btn icon-btn-sm" aria-label="Dismiss" title="Dismiss">
+        <span class="icon icon-sm" data-icon="x"></span>
       </button>
-      <button class="control-btn reset" id="resetBtn" title="Reset to 1.0x">
-        Reset
-      </button>
-      <button class="control-btn" id="increaseBtn" title="Increase speed">
-        <span id="increaseLabel">+0.25</span>
-      </button>
-    </section>
+    </aside>
+  </main>
 
-    <section class="settings">
-      <label class="setting-item">
-        <span>Remember speed</span>
-        <input type="checkbox" id="rememberSpeed" checked>
-        <span class="toggle"></span>
-      </label>
-      <label class="setting-item">
-        <span>Show indicator</span>
-        <input type="checkbox" id="showIndicator" checked>
-        <span class="toggle"></span>
-      </label>
-      <label class="setting-item">
-        <span>Per-series speed</span>
-        <input type="checkbox" id="perSeriesSpeed">
-        <span class="toggle"></span>
-      </label>
-      <label class="setting-item">
-        <span>Auto-skip intro/outro</span>
-        <input type="checkbox" id="autoSkip" checked>
-        <span class="toggle"></span>
-      </label>
-      <div class="setting-item">
-        <span>Speed step</span>
-        <select id="speedStepSelect" class="speed-step-select">
-          <option value="0.05">0.05x</option>
-          <option value="0.1">0.10x</option>
-          <option value="0.25" selected>0.25x</option>
-        </select>
-      </div>
-    </section>
-
-    <div class="shortcuts-trigger" id="shortcutsTrigger">Customize shortcuts &#9662;</div>
-    <section class="shortcuts-panel" id="shortcutsPanel">
-      <div class="shortcut-row" data-action="increaseSpeed">
-        <span>Faster</span><button class="shortcut-key" data-action="increaseSpeed"></button>
-      </div>
-      <div class="shortcut-row" data-action="decreaseSpeed">
-        <span>Slower</span><button class="shortcut-key" data-action="decreaseSpeed"></button>
-      </div>
-      <div class="shortcut-row" data-action="resetSpeed">
-        <span>Reset</span><button class="shortcut-key" data-action="resetSpeed"></button>
-      </div>
-      <div class="shortcut-row" data-action="toggleIndicator">
-        <span>Toggle indicator</span><button class="shortcut-key" data-action="toggleIndicator"></button>
-      </div>
-      <div class="shortcut-hint" id="shortcutHint">Click a key, then press your combo. <a href="#" id="openGlobalShortcuts">Edit global shortcuts &rsaquo;</a></div>
-    </section>
-
-    <section class="stats-display" id="statsLink" title="View full stats">
-      <span class="stats-icon">&#9201;</span><span class="stats-value" id="timeSaved">0m</span> saved
-      <span class="stats-more">View stats &rsaquo;</span>
-    </section>
-
-    <section class="support-cta">
-      <div class="support-cta-text">
-        <strong>&#9749; Enjoying the extension?</strong>
-        <span>It's free — a small tip keeps it brewing</span>
-      </div>
-      <div class="tip-buttons">
-        <a href="#" class="tip-btn" data-amount="1">$1</a>
-        <a href="#" class="tip-btn" data-amount="3">$3</a>
-        <a href="#" class="tip-btn" data-amount="5">$5</a>
-        <a href="#" class="tip-btn custom" data-amount="">Other</a>
-      </div>
-      <span class="tip-note">&#128274; Secure checkout via PayPal</span>
-    </section>
-
-    <footer>
-      <div class="footer-links">
-        <span class="feedback-trigger" id="feedbackTrigger">Send Feedback</span>
-      </div>
-    </footer>
-
-    <section class="feedback-panel" id="feedbackPanel">
-      <div class="feedback-types">
-        <label class="feedback-type-label">
-          <input type="radio" name="fbType" value="bug" checked>
-          <span>Bug</span>
-        </label>
-        <label class="feedback-type-label">
-          <input type="radio" name="fbType" value="feature">
-          <span>Feature</span>
-        </label>
-        <label class="feedback-type-label">
-          <input type="radio" name="fbType" value="general">
-          <span>General</span>
-        </label>
-      </div>
-      <textarea id="feedbackMsg" class="feedback-textarea" placeholder="Your feedback..." maxlength="500" rows="3"></textarea>
-      <button class="control-btn reset feedback-submit" id="feedbackSubmit">Submit</button>
-      <div class="feedback-status" id="feedbackStatus"></div>
-    </section>
-  </div>
-
+  <script src="../shared/logic.js"></script>
+  <script src="../shared/icons.js"></script>
   <script src="popup.js"></script>
 </body>
 </html>

@@ -1,445 +1,335 @@
-// DOM Elements
-const speedValue = document.getElementById('speedValue');
-const speedSlider = document.getElementById('speedSlider');
-const quickButtons = document.querySelectorAll('.quick-btn');
-const decreaseBtn = document.getElementById('decreaseBtn');
-const resetBtn = document.getElementById('resetBtn');
-const increaseBtn = document.getElementById('increaseBtn');
-const rememberSpeedCheckbox = document.getElementById('rememberSpeed');
-const showIndicatorCheckbox = document.getElementById('showIndicator');
-const statusElement = document.getElementById('status');
-const speedStepSelect = document.getElementById('speedStepSelect');
-const perSeriesSpeedCheckbox = document.getElementById('perSeriesSpeed');
-const autoSkipCheckbox = document.getElementById('autoSkip');
-const decreaseLabel = document.getElementById('decreaseLabel');
-const increaseLabel = document.getElementById('increaseLabel');
+// Speed Controller - Popup
+// Two states: "watching" (supported site with a video) and "idle" (anything
+// else), plus a one-time milestone thank-you card. Shared helpers come from
+// ../shared/logic.js (CSC_LOGIC) and icons from ../shared/icons.js (CSC_ICONS).
 
-// Your PayPal.me username (the part after paypal.me/).
-const PAYPAL_USERNAME = 'AkilRajpariLLC';
+(function () {
+  'use strict';
 
-function paypalUrl(amount) {
-  const base = `https://www.paypal.me/${PAYPAL_USERNAME}`;
-  return amount ? `${base}/${amount}USD` : base;
-}
+  const L = globalThis.CSC_LOGIC;
+  const ICONS = globalThis.CSC_ICONS;
 
-// Speed step for fine controls
-let speedStep = 0.25;
-const MIN_SPEED = 0.25;
-const MAX_SPEED = 4.0;
+  const MIN_SPEED = 0.25;
+  const MAX_SPEED = 4;
+  const PROBE_RETRIES = 3;
+  const PROBE_DELAY_MS = 400;
+  const CONFIRM_MS = 3000;
+  const MILESTONE_SEEN_MS = 2000;
 
-const DEFAULT_SHORTCUTS = {
-  increaseSpeed:   { code: 'Period', shift: true, ctrl: false, alt: false, meta: false },
-  decreaseSpeed:   { code: 'Comma',  shift: true, ctrl: false, alt: false, meta: false },
-  resetSpeed:      { code: 'Slash',  shift: true, ctrl: false, alt: false, meta: false },
-  toggleIndicator: { code: 'KeyV',   shift: true, ctrl: false, alt: false, meta: false }
-};
-let shortcuts = { ...DEFAULT_SHORTCUTS };
+  const HINT_DEFAULT = 'Open an episode on Crunchyroll or HIDIVE to change speed';
+  const HINT_RELOAD = 'Reload this page to turn on speed controls';
 
-// Current state
-let currentSpeed = 1.0;
-let isOnCrunchyroll = false;
+  const $ = (id) => document.getElementById(id);
+  const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+  const isObj = (v) => !!v && typeof v === 'object' && !Array.isArray(v);
+  const sameSpeed = (a, b) => Math.abs(a - b) < 0.001;
 
-// Supported streaming sites (keep in sync with manifest + content/sites.js).
-const SUPPORTED_HOSTS = ['crunchyroll.com', 'hidive.com'];
-function isSupportedUrl(url) {
-  return SUPPORTED_HOSTS.some((h) => url.includes(h));
-}
-
-function updateStepLabels() {
-  const stepStr = speedStep % 1 === 0 ? speedStep.toFixed(1) : String(speedStep);
-  decreaseLabel.textContent = `-${stepStr}`;
-  increaseLabel.textContent = `+${stepStr}`;
-}
-
-// Initialize popup
-async function init() {
-  // Load saved settings
-  const settings = await chrome.storage.sync.get({
-    speed: 1.0,
-    rememberSpeed: true,
-    showIndicator: true,
+  const state = {
+    tab: null,
+    speed: 1,
     speedStep: 0.25,
-    perSeriesSpeed: false,
-    autoSkip: true,
-    shortcuts: DEFAULT_SHORTCUTS
-  });
+    rememberSpeed: true,
+    slug: '',
+    slugResolved: false,
+    showName: '',
+    confirmTimer: null,
+    milestone: null // { n, shown: number[], done: boolean }
+  };
 
-  currentSpeed = settings.speed;
-  rememberSpeedCheckbox.checked = settings.rememberSpeed;
-  showIndicatorCheckbox.checked = settings.showIndicator;
-  speedStep = settings.speedStep;
-  speedStepSelect.value = String(settings.speedStep);
-  perSeriesSpeedCheckbox.checked = settings.perSeriesSpeed;
-  autoSkipCheckbox.checked = settings.autoSkip;
-  shortcuts = { ...DEFAULT_SHORTCUTS, ...(settings.shortcuts || {}) };
-  renderShortcuts();
-  updateStepLabels();
-
-  updateUI(currentSpeed);
-
-  // Check if we're on a supported site
-  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-  if (tab && tab.url && isSupportedUrl(tab.url)) {
-    isOnCrunchyroll = true;
-    setStatus(true);
-
-    // Get current speed from content script
-    try {
-      const response = await chrome.tabs.sendMessage(tab.id, { action: 'getSpeed' });
-      if (response && response.speed !== undefined) {
-        currentSpeed = response.speed;
-        updateUI(currentSpeed);
-      }
-    } catch (e) {
-      // Content script might not be loaded yet
-      console.log('Could not communicate with content script');
-    }
-  } else {
-    isOnCrunchyroll = false;
-    setStatus(false);
+  // ---- Setup ----
+  function paintIcons() {
+    document.querySelectorAll('[data-icon]').forEach((el) => {
+      const markup = ICONS[el.dataset.icon];
+      if (markup) el.innerHTML = markup; // trusted static constants
+    });
   }
 
-  // Load time saved stats
-  const statsData = await chrome.storage.local.get({
-    stats: { totalTimeSavedSec: 0, totalTimeWatchedSec: 0 }
-  });
-  const timeSavedEl = document.getElementById('timeSaved');
-  const totalSec = Math.round(statsData.stats.totalTimeSavedSec);
-  if (totalSec >= 3600) {
-    const hours = Math.floor(totalSec / 3600);
-    const mins = Math.floor((totalSec % 3600) / 60);
-    timeSavedEl.textContent = `${hours}h ${mins}m`;
-  } else {
-    const mins = Math.floor(totalSec / 60);
-    timeSavedEl.textContent = `${mins}m`;
-  }
-}
-
-// Update UI to reflect current speed
-function updateUI(speed) {
-  speedValue.textContent = speed.toFixed(2);
-  speedSlider.value = speed;
-
-  // Update speed display color
-  if (speed === 1.0) {
-    speedValue.classList.add('normal');
-  } else {
-    speedValue.classList.remove('normal');
+  function buildPresets() {
+    const row = $('presets');
+    const last = L.PRESETS.length - 1;
+    L.PRESETS.forEach((p, i) => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'preset';
+      btn.dataset.speed = String(p);
+      btn.textContent = i === 0 || i === last ? `${L.fmtSpeed(p)}x` : L.fmtSpeed(p);
+      btn.setAttribute('aria-label', `${L.fmtSpeed(p)}x`);
+      btn.addEventListener('click', () => {
+        if (btn.classList.contains('active')) return;
+        changeSpeed(p);
+      });
+      row.append(btn);
+    });
   }
 
-  // Update quick button states
-  quickButtons.forEach(btn => {
-    const btnSpeed = parseFloat(btn.dataset.speed);
-    if (Math.abs(btnSpeed - speed) < 0.01) {
-      btn.classList.add('active');
-    } else {
-      btn.classList.remove('active');
-    }
-  });
-}
-
-// Set status indicator
-function setStatus(active) {
-  if (active) {
-    statusElement.classList.add('active');
-    statusElement.classList.remove('inactive');
-    statusElement.querySelector('.status-text').textContent = 'Active';
-  } else {
-    statusElement.classList.remove('active');
-    statusElement.classList.add('inactive');
-    statusElement.querySelector('.status-text').textContent = 'Not on a supported site';
-  }
-}
-
-// Send speed change to content script
-async function setSpeed(speed) {
-  speed = Math.max(MIN_SPEED, Math.min(MAX_SPEED, speed));
-  speed = Math.round(speed * 100) / 100; // Round to 2 decimal places
-
-  currentSpeed = speed;
-  updateUI(speed);
-
-  // Save to storage if remember is enabled
-  if (rememberSpeedCheckbox.checked) {
-    await chrome.storage.sync.set({ speed: speed });
+  function openTab(url) {
+    return chrome.tabs.create({ url });
   }
 
-  // Send to content script if on Crunchyroll
-  if (isOnCrunchyroll) {
-    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-    if (tab) {
-      try {
-        await chrome.tabs.sendMessage(tab.id, {
-          action: 'setSpeed',
-          speed: speed
-        });
-      } catch (e) {
-        console.log('Could not send speed to content script');
-      }
-    }
-  }
-}
-
-// Event Listeners
-
-// Slider input
-speedSlider.addEventListener('input', (e) => {
-  const speed = parseFloat(e.target.value);
-  setSpeed(speed);
-});
-
-// Quick buttons
-quickButtons.forEach(btn => {
-  btn.addEventListener('click', () => {
-    const speed = parseFloat(btn.dataset.speed);
-    setSpeed(speed);
-  });
-});
-
-// Fine control buttons
-decreaseBtn.addEventListener('click', () => {
-  setSpeed(currentSpeed - speedStep);
-});
-
-increaseBtn.addEventListener('click', () => {
-  setSpeed(currentSpeed + speedStep);
-});
-
-resetBtn.addEventListener('click', () => {
-  setSpeed(1.0);
-});
-
-// Settings toggles
-rememberSpeedCheckbox.addEventListener('change', async () => {
-  await chrome.storage.sync.set({
-    rememberSpeed: rememberSpeedCheckbox.checked
-  });
-
-  // Save current speed if enabling remember
-  if (rememberSpeedCheckbox.checked) {
-    await chrome.storage.sync.set({ speed: currentSpeed });
-  }
-});
-
-showIndicatorCheckbox.addEventListener('change', async () => {
-  const showIndicator = showIndicatorCheckbox.checked;
-  await chrome.storage.sync.set({ showIndicator });
-
-  // Send to content script
-  if (isOnCrunchyroll) {
-    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-    if (tab) {
-      try {
-        await chrome.tabs.sendMessage(tab.id, {
-          action: 'toggleIndicator',
-          show: showIndicator
-        });
-      } catch (e) {
-        console.log('Could not send indicator toggle to content script');
-      }
-    }
-  }
-});
-
-// Per-series speed toggle
-perSeriesSpeedCheckbox.addEventListener('change', async () => {
-  const enabled = perSeriesSpeedCheckbox.checked;
-  await chrome.storage.sync.set({ perSeriesSpeed: enabled });
-
-  if (isOnCrunchyroll) {
-    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-    if (tab) {
-      try {
-        await chrome.tabs.sendMessage(tab.id, {
-          action: 'setPerSeriesSpeed',
-          enabled: enabled
-        });
-      } catch (e) {
-        console.log('Could not send per-series setting to content script');
-      }
-    }
-  }
-});
-
-// Speed step change
-speedStepSelect.addEventListener('change', async () => {
-  speedStep = parseFloat(speedStepSelect.value);
-  updateStepLabels();
-  await chrome.storage.sync.set({ speedStep });
-
-  // Notify content script
-  if (isOnCrunchyroll) {
-    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-    if (tab) {
-      try {
-        await chrome.tabs.sendMessage(tab.id, {
-          action: 'setSpeedStep',
-          speedStep: speedStep
-        });
-      } catch (e) {
-        console.log('Could not send speed step to content script');
-      }
-    }
-  }
-});
-
-// Feedback system
-
-const feedbackTrigger = document.getElementById('feedbackTrigger');
-const feedbackPanel = document.getElementById('feedbackPanel');
-const feedbackMsg = document.getElementById('feedbackMsg');
-const feedbackSubmit = document.getElementById('feedbackSubmit');
-const feedbackStatus = document.getElementById('feedbackStatus');
-
-feedbackTrigger.addEventListener('click', () => {
-  feedbackPanel.classList.toggle('open');
-  feedbackStatus.textContent = '';
-  feedbackStatus.className = 'feedback-status';
-});
-
-feedbackSubmit.addEventListener('click', async () => {
-  const message = feedbackMsg.value.trim();
-  if (!message) {
-    feedbackStatus.textContent = 'Please enter your feedback';
-    feedbackStatus.className = 'feedback-status error';
-    return;
+  function openSettings() {
+    return openTab(chrome.runtime.getURL('options/options.html#settings'));
   }
 
-  // Rate limit: 5 min between submissions
-  const rateData = await chrome.storage.local.get({ lastFeedbackTime: 0 });
-  if (Date.now() - rateData.lastFeedbackTime < 5 * 60 * 1000) {
-    feedbackStatus.textContent = 'Please wait a few minutes before submitting again';
-    feedbackStatus.className = 'feedback-status error';
-    return;
-  }
+  function bindEvents() {
+    $('decreaseBtn').addEventListener('click', () => changeSpeed(state.speed - state.speedStep));
+    $('increaseBtn').addEventListener('click', () => changeSpeed(state.speed + state.speedStep));
+    $('useForAllBtn').addEventListener('click', useForAll);
+    $('statsBtn').addEventListener('click', () => chrome.runtime.openOptionsPage());
+    $('settingsBtn').addEventListener('click', openSettings);
+    $('idleSettingsBtn').addEventListener('click', openSettings);
+    $('notWorkingLink').addEventListener('click', () =>
+      openTab(chrome.runtime.getURL('options/options.html#feedback'))
+    );
 
-  const type = document.querySelector('input[name="fbType"]:checked').value;
-  const version = chrome.runtime.getManifest().version;
-
-  feedbackSubmit.disabled = true;
-  feedbackSubmit.textContent = 'Sending...';
-
-  try {
-    const response = await chrome.runtime.sendMessage({
-      action: 'submitFeedback',
-      data: {
-        type,
-        message,
-        version,
-        speed: currentSpeed,
-        timestamp: new Date().toISOString()
-      }
+    document.querySelectorAll('.autoskip-toggle').forEach((box) => {
+      box.addEventListener('change', () => {
+        setAutoSkip(box.checked);
+        chrome.storage.sync.set({ autoSkip: box.checked });
+      });
     });
 
-    if (response && response.success) {
-      feedbackStatus.textContent = 'Thanks for your feedback!';
-      feedbackStatus.className = 'feedback-status success';
-      feedbackMsg.value = '';
-      await chrome.storage.local.set({ lastFeedbackTime: Date.now() });
-    } else {
-      feedbackStatus.textContent = 'Failed to send. Try again later.';
-      feedbackStatus.className = 'feedback-status error';
-    }
-  } catch (e) {
-    feedbackStatus.textContent = 'Failed to send. Try again later.';
-    feedbackStatus.className = 'feedback-status error';
-  } finally {
-    feedbackSubmit.disabled = false;
-    feedbackSubmit.textContent = 'Submit';
+    $('dismissMilestone').addEventListener('click', dismissMilestone);
+    $('tipBtn').addEventListener('click', () => finishMilestone(L.paypalUrl()));
+    $('rateBtn').addEventListener('click', () => finishMilestone(L.reviewUrl(chrome.runtime.id)));
   }
-});
 
-// Auto-skip toggle
-autoSkipCheckbox.addEventListener('change', () => {
-  chrome.storage.sync.set({ autoSkip: autoSkipCheckbox.checked });
-});
+  // ---- Tab + content script ----
+  async function resolveTab() {
+    const tabId = new URLSearchParams(location.search).get('tabId');
+    try {
+      if (tabId) return await chrome.tabs.get(Number(tabId)); // E2E test hook
+      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      return tab || null;
+    } catch (e) {
+      return null;
+    }
+  }
 
-// Open the full stats dashboard (options page)
-document.getElementById('statsLink').addEventListener('click', () => {
-  chrome.runtime.openOptionsPage();
-});
+  async function askSpeed(tabId) {
+    try {
+      const response = await chrome.tabs.sendMessage(tabId, { action: 'getSpeed' });
+      return { response, error: null };
+    } catch (error) {
+      return { response: null, error };
+    }
+  }
 
-// Tip jar (PayPal)
-document.querySelectorAll('.tip-btn').forEach((btn) => {
-  btn.addEventListener('click', (e) => {
-    e.preventDefault();
-    chrome.tabs.create({ url: paypalUrl(btn.dataset.amount) });
+  // ---- Rendering ----
+  function show(mode) {
+    const watching = mode === 'watching';
+    $('watching').hidden = !watching;
+    $('idle').hidden = watching;
+    if (!watching) {
+      $('idleHint').textContent = mode === 'idle-reload' ? HINT_RELOAD : HINT_DEFAULT;
+      $('notWorkingLink').hidden = mode !== 'idle-broken';
+    }
+    document.body.dataset.mode = mode;
+  }
+
+  function setAutoSkip(on) {
+    document.querySelectorAll('.autoskip-toggle').forEach((box) => {
+      box.checked = !!on;
+    });
+  }
+
+  function renderStats(local) {
+    const daily = isObj(local.daily) ? local.daily : {};
+    const stats = isObj(local.stats) ? local.stats : {};
+    const now = new Date();
+
+    const week = L.weekTotals(daily, now);
+    const weekText = L.fmtDuration(week.savedSec);
+    $('weekSaved').textContent = `${weekText} saved this week`;
+    $('idleWeekSaved').textContent = weekText;
+
+    const streak = L.computeStreaks(daily, now).current;
+    const intros = week.skips === 1 ? 'intro' : 'intros';
+    $('idleWeekMeta').textContent = `${week.skips} ${intros} skipped · ${streak}-day streak`;
+
+    $('allTimeSaved').textContent = L.fmtDuration(Number(stats.totalTimeSavedSec) || 0);
+
+    const top = L.topShow(isObj(local.seriesStats) ? local.seriesStats : {});
+    $('topShowTile').hidden = !top;
+    if (top) {
+      const name = L.prettifySlug(top);
+      $('topShowName').textContent = name;
+      $('topShowName').title = name;
+    }
+  }
+
+  function renderWatching(response) {
+    const site = response.siteLabel || '';
+    state.speed = Number(response.speed) || 1;
+    state.slug = response.slug || '';
+    state.slugResolved = !!response.slugResolved;
+    state.showName = L.prettifySlug(state.slug) || site;
+
+    $('showName').textContent = state.showName;
+    $('showName').title = state.showName;
+    $('siteLabel').textContent = site;
+    renderSpeed();
+    renderSeriesLine();
+  }
+
+  function renderSpeed() {
+    const s = state.speed;
+    $('speedValue').textContent = L.fmtSpeed(s);
+    $('speedReadout').classList.toggle('is-custom', !sameSpeed(s, 1));
+    document.querySelectorAll('.preset').forEach((btn) => {
+      const on = sameSpeed(Number(btn.dataset.speed), s);
+      btn.classList.toggle('active', on);
+      btn.setAttribute('aria-pressed', String(on));
+    });
+    $('decreaseBtn').disabled = s <= MIN_SPEED + 0.001;
+    $('increaseBtn').disabled = s >= MAX_SPEED - 0.001;
+  }
+
+  function renderSeriesLine() {
+    if (state.confirmTimer) return; // confirmation text owns the line for now
+    const visible = state.rememberSpeed && !!state.slug && state.slugResolved;
+    $('seriesLine').hidden = !visible;
+    if (!visible) return;
+    setSeriesIcon('pin');
+    $('seriesText').textContent = `Saved for ${state.showName}`;
+    $('useForAllBtn').hidden = false;
+  }
+
+  function setSeriesIcon(name) {
+    const el = $('seriesIcon');
+    el.dataset.icon = name;
+    el.innerHTML = ICONS[name];
+  }
+
+  function endConfirmation() {
+    if (!state.confirmTimer) return;
+    clearTimeout(state.confirmTimer);
+    state.confirmTimer = null;
+    renderSeriesLine();
+  }
+
+  // ---- Speed ----
+  async function changeSpeed(target) {
+    target = Math.round(Math.max(MIN_SPEED, Math.min(MAX_SPEED, target)) * 100) / 100;
+    if (sameSpeed(target, state.speed) || !state.tab) return;
+    endConfirmation();
+    state.speed = target;
+    renderSpeed();
+    try {
+      const res = await chrome.tabs.sendMessage(state.tab.id, { action: 'setSpeed', speed: target });
+      if (res && typeof res.speed === 'number') {
+        state.speed = res.speed;
+        renderSpeed();
+      }
+    } catch (e) {
+      // Tab navigated away or closed; keep the optimistic value.
+    }
+  }
+
+  async function useForAll() {
+    await chrome.storage.sync.set({ seriesSpeeds: {}, speed: state.speed });
+    endConfirmation();
+    setSeriesIcon('check');
+    $('seriesText').textContent = `${L.fmtSpeed(state.speed)}x is now your speed for every show`;
+    $('useForAllBtn').hidden = true;
+    $('seriesLine').hidden = false;
+    state.confirmTimer = setTimeout(() => {
+      state.confirmTimer = null;
+      renderSeriesLine();
+    }, CONFIRM_MS);
+  }
+
+  // ---- Milestone prompt ----
+  function readMilestonePrompt(raw) {
+    const o = isObj(raw) ? raw : {};
+    return {
+      shown: Array.isArray(o.shown) ? o.shown.filter((h) => Number.isFinite(h)) : [],
+      done: o.done === true
+    };
+  }
+
+  function initMilestone(local) {
+    const stats = isObj(local.stats) ? local.stats : {};
+    const prompt = readMilestonePrompt(local.milestonePrompt);
+    const n = L.nextMilestone(Number(stats.totalTimeSavedSec) || 0, prompt);
+    if (n == null) return;
+    state.milestone = { n, ...prompt };
+    $('milestoneTitle').textContent = `You've saved ${n} hours`;
+    $('milestoneCard').hidden = false;
+    // Counts as used once it has been on screen for a moment.
+    setTimeout(markMilestoneShown, MILESTONE_SEEN_MS);
+  }
+
+  function saveMilestone() {
+    const { shown, done } = state.milestone;
+    return chrome.storage.local.set({ milestonePrompt: { shown, done } });
+  }
+
+  function markMilestoneShown() {
+    const m = state.milestone;
+    if (!m) return Promise.resolve();
+    if (!m.shown.includes(m.n)) m.shown = [...m.shown, m.n];
+    return saveMilestone();
+  }
+
+  async function dismissMilestone() {
+    $('milestoneCard').hidden = true;
+    await markMilestoneShown();
+  }
+
+  async function finishMilestone(url) {
+    if (state.milestone) {
+      state.milestone.done = true;
+      await markMilestoneShown(); // write before the new tab closes the popup
+    }
+    $('milestoneCard').hidden = true;
+    openTab(url);
+  }
+
+  // ---- Init ----
+  async function init() {
+    paintIcons();
+    buildPresets();
+    bindEvents();
+
+    const [sync, local, tab] = await Promise.all([
+      chrome.storage.sync.get({ rememberSpeed: true, speedStep: 0.25, autoSkip: true }),
+      chrome.storage.local.get({ stats: {}, seriesStats: {}, daily: {}, milestonePrompt: null }),
+      resolveTab()
+    ]);
+
+    state.tab = tab;
+    state.rememberSpeed = sync.rememberSpeed !== false;
+    state.speedStep = Number(sync.speedStep) > 0 ? Number(sync.speedStep) : 0.25;
+    setAutoSkip(sync.autoSkip !== false);
+    renderStats(local);
+    initMilestone(local);
+
+    const url = (tab && tab.url) || '';
+    const supported = !!tab && L.isSupportedUrl(url);
+    const watchUrl = L.isWatchUrl(url);
+    if (!supported) {
+      show(L.popupMode({ supported: false }));
+      return;
+    }
+
+    let probe;
+    for (let attempt = 0; ; attempt++) {
+      probe = await askSpeed(tab.id);
+      const done = probe.error || (probe.response && probe.response.hasVideo);
+      if (done || attempt >= PROBE_RETRIES) break;
+      // Off a watch page the answer is idle unless a video shows up, so show
+      // it now and keep listening instead of leaving the popup blank.
+      if (!watchUrl) show('idle');
+      await sleep(PROBE_DELAY_MS);
+    }
+
+    const mode = L.popupMode({ supported, watchUrl, response: probe.response, error: probe.error });
+    if (mode === 'watching') renderWatching(probe.response);
+    show(mode);
+  }
+
+  init().catch((e) => {
+    console.error('Speed Controller popup failed to load', e);
+    show('idle');
   });
-});
-
-// Shortcut editor
-const shortcutsTrigger = document.getElementById('shortcutsTrigger');
-const shortcutsPanel = document.getElementById('shortcutsPanel');
-let capturingAction = null;
-
-shortcutsTrigger.addEventListener('click', () => {
-  shortcutsPanel.classList.toggle('open');
-});
-
-document.getElementById('openGlobalShortcuts').addEventListener('click', (e) => {
-  e.preventDefault();
-  chrome.tabs.create({ url: 'chrome://extensions/shortcuts' });
-});
-
-function codeToLabel(code) {
-  if (!code) return '?';
-  if (code.startsWith('Key')) return code.slice(3);
-  if (code.startsWith('Digit')) return code.slice(5);
-  const map = {
-    Period: '.', Comma: ',', Slash: '/', Semicolon: ';', Quote: "'",
-    BracketLeft: '[', BracketRight: ']', Backslash: '\\', Minus: '-', Equal: '=',
-    Space: 'Space', ArrowUp: '↑', ArrowDown: '↓', ArrowLeft: '←', ArrowRight: '→',
-    Backquote: '`'
-  };
-  return map[code] || code;
-}
-
-function shortcutLabel(sc) {
-  if (!sc || !sc.code) return 'None';
-  const parts = [];
-  if (sc.ctrl) parts.push('Ctrl');
-  if (sc.alt) parts.push('Alt');
-  if (sc.shift) parts.push('Shift');
-  if (sc.meta) parts.push('⌘');
-  parts.push(codeToLabel(sc.code));
-  return parts.join(' + ');
-}
-
-function renderShortcuts() {
-  document.querySelectorAll('.shortcut-key').forEach((btn) => {
-    const action = btn.dataset.action;
-    btn.textContent = capturingAction === action ? 'Press keys…' : shortcutLabel(shortcuts[action]);
-    btn.classList.toggle('capturing', capturingAction === action);
-  });
-}
-
-document.querySelectorAll('.shortcut-key').forEach((btn) => {
-  btn.addEventListener('click', () => {
-    capturingAction = capturingAction === btn.dataset.action ? null : btn.dataset.action;
-    renderShortcuts();
-  });
-});
-
-// Capture the next key combo while a shortcut is being recorded.
-document.addEventListener('keydown', (e) => {
-  if (!capturingAction) return;
-  const mods = ['Shift', 'Control', 'Alt', 'Meta', 'ShiftLeft', 'ShiftRight',
-    'ControlLeft', 'ControlRight', 'AltLeft', 'AltRight', 'MetaLeft', 'MetaRight'];
-  e.preventDefault();
-  if (e.key === 'Escape') { capturingAction = null; renderShortcuts(); return; }
-  if (mods.includes(e.code)) return; // wait for a non-modifier key
-
-  shortcuts[capturingAction] = {
-    code: e.code,
-    shift: e.shiftKey,
-    ctrl: e.ctrlKey,
-    alt: e.altKey,
-    meta: e.metaKey
-  };
-  capturingAction = null;
-  chrome.storage.sync.set({ shortcuts });
-  renderShortcuts();
-});
-
-// Initialize on load
-init();
+})();
