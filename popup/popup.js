@@ -162,7 +162,9 @@
     state.speed = Number(response.speed) || 1;
     state.slug = response.slug || '';
     state.slugResolved = !!response.slugResolved;
-    state.showName = L.prettifySlug(state.slug) || site;
+    // Until the show is known (Crunchyroll's series link not read yet, a
+    // HIDIVE URL with only an id) the slug is an episode title or a number.
+    state.showName = (state.slugResolved && L.prettifySlug(state.slug)) || site;
 
     $('showName').textContent = state.showName;
     $('showName').title = state.showName;

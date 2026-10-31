@@ -325,10 +325,12 @@
     observer.observe(document.body, { childList: true, subtree: true });
   }
 
+  // Also runs from popstate, which fires on Back/Forward before the site has
+  // re-rendered the new page. So it doesn't apply the per-show speed itself:
+  // the main loop calls applySeriesSpeedIfReady() every tick.
   function checkUrlChange() {
     if (location.href === lastUrl) return;
     lastUrl = location.href;
-    applySeriesSpeedIfReady();
   }
 
   // Apply this show's saved speed once per page path, as soon as the series
@@ -343,7 +345,10 @@
 
     // The slug just resolved after the user picked a speed: save it for the show.
     if (pendingSeriesSave) {
-      if (info.slug) saveSeriesSpeed(info.slug, pendingSeriesSave.speed);
+      if (info.slug) {
+        rememberSeriesSpeed(info.slug, pendingSeriesSave.speed);
+        writeSync({ seriesSpeeds });
+      }
       pendingSeriesSave = null;
     }
 
@@ -354,9 +359,14 @@
     else setVideoSpeed(globalSpeed, { showUI: false }); // no saved speed: use the global one
   }
 
-  function saveSeriesSpeed(slug, speed) {
+  function rememberSeriesSpeed(slug, speed) {
     seriesSpeeds = CSC_LOGIC.withSeriesSpeed(seriesSpeeds, slug, speed, CSC_LOGIC.SERIES_SPEED_CAP);
-    chrome.storage.sync.set({ seriesSpeeds });
+  }
+
+  // Sync allows ~120 writes a minute; a rejected write (quota) is dropped
+  // quietly rather than surfacing as an unhandled rejection.
+  function writeSync(values) {
+    chrome.storage.sync.set(values).catch(() => {});
   }
 
   // Own-property check, so a slug like "constructor" never reads the prototype.
@@ -385,11 +395,17 @@
       slug: info.slug,
       slugResolved: info.resolved
     });
+    // One sync write per user change: speed and this show's entry together.
+    const write = {};
     if (plan.global) {
       globalSpeed = speed;
-      chrome.storage.sync.set({ speed });
+      write.speed = speed;
     }
-    if (plan.series) saveSeriesSpeed(info.slug, speed);
+    if (plan.series) {
+      rememberSeriesSpeed(info.slug, speed);
+      write.seriesSpeeds = seriesSpeeds;
+    }
+    if (plan.global || plan.series) writeSync(write);
     if (save) {
       // Slug not resolved yet (Crunchyroll watch page before its series link
       // renders): hold the per-show save until it does. Never key by the
