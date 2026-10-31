@@ -1,14 +1,13 @@
-// Crunchyroll Speed Controller - Service Worker
+importScripts('/shared/logic.js');
 
-// Supported streaming sites (keep in sync with manifest + content/sites.js).
-const SUPPORTED_HOSTS = ['crunchyroll.com', 'hidive.com'];
+// Crunchyroll Speed Controller - Service Worker
 
 // Handle keyboard commands
 chrome.commands.onCommand.addListener(async (command) => {
   // Get the active tab
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
 
-  if (!tab || !tab.url || !SUPPORTED_HOSTS.some((h) => tab.url.includes(h))) {
+  if (!tab || !tab.url || !CSC_LOGIC.isSupportedUrl(tab.url)) {
     return; // Only work on supported sites
   }
 
@@ -50,7 +49,7 @@ const DEFAULT_SETTINGS = {
   rememberSpeed: true,
   showIndicator: true,
   speedStep: 0.25,
-  perSeriesSpeed: false,
+  perSeriesSpeed: true,
   seriesSpeeds: {},
   autoSkip: true,
   shortcuts: DEFAULT_SHORTCUTS
@@ -70,12 +69,10 @@ chrome.runtime.onInstalled.addListener((details) => {
     chrome.storage.local.set({ stats: DEFAULT_STATS, seriesStats: {}, daily: {} });
     console.log('Crunchyroll Speed Controller installed');
   } else if (details.reason === 'update') {
-    // Add any new setting keys without overwriting existing choices.
+    // Add any new setting keys without overwriting existing choices, and
+    // switch per-show speed on (v2.1 default).
     chrome.storage.sync.get(null, (existing) => {
-      const updates = {};
-      for (const [key, value] of Object.entries(DEFAULT_SETTINGS)) {
-        if (!(key in existing)) updates[key] = value;
-      }
+      const updates = CSC_LOGIC.migrateSyncSettings(existing || {}, DEFAULT_SETTINGS);
       if (Object.keys(updates).length > 0) chrome.storage.sync.set(updates);
     });
 
@@ -101,22 +98,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       method: 'POST',
       body: JSON.stringify(message.data)
     })
-      .then(() => sendResponse({ success: true }))
+      .then(async (res) => {
+        const text = await res.text();
+        sendResponse({ success: CSC_LOGIC.isFeedbackSuccess(res.status, text) });
+      })
       .catch((err) => sendResponse({ success: false, error: err.message }));
-    return true; // Keep channel open for async response
-  }
-
-  if (message.action === 'getSettings') {
-    chrome.storage.sync.get({
-      speed: 1.0,
-      rememberSpeed: true,
-      showIndicator: true,
-      speedStep: 0.25,
-      perSeriesSpeed: false,
-      seriesSpeeds: {}
-    }, (settings) => {
-      sendResponse(settings);
-    });
     return true; // Keep channel open for async response
   }
 });
