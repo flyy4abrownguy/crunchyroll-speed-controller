@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Crunchyroll Speed Controller",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "Control playback speed on Crunchyroll & HIDIVE, auto-skip intros/outros, custom shortcuts, and track time saved.",
   "icons": {
     "16": "icons/icon16.png",
