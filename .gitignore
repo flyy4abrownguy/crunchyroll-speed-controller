@@ -19,3 +19,7 @@ node_modules/
 # Temporary files
 *.log
 *.tmp
+
+# E2E (Chrome for Testing + Playwright)
+tests/e2e/.browsers/
+tests/e2e/.profile/
