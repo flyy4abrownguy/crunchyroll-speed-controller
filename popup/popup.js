@@ -317,9 +317,10 @@
       probe = await askSpeed(tab.id);
       const done = probe.error || (probe.response && probe.response.hasVideo);
       if (done || attempt >= PROBE_RETRIES) break;
-      // Off a watch page the answer is idle unless a video shows up, so show
-      // it now and keep listening instead of leaving the popup blank.
-      if (!watchUrl) show('idle');
+      // No video yet: show the idle state while we keep listening, instead of
+      // a blank popup. The final show(mode) below replaces it (watching hides
+      // #idle; idle-broken / idle-reload set the link and hint).
+      show('idle');
       await sleep(PROBE_DELAY_MS);
     }
 
