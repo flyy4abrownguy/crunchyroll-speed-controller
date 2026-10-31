@@ -1,3 +1,31 @@
+# v2.1.0 — Release verification
+
+_Last updated: 2026-10-31_
+
+v2.1.0 is a polish release: redesigned popup (watching and idle states), per-show
+speed remembered automatically, milestone thank-you card, and a settings,
+shortcuts and feedback section on the options page. No new permissions.
+
+| Check | Result |
+|-------|--------|
+| Unit tests (`node --test tests/logic.test.js`) | **17/17 pass** |
+| E2E smoke suite (`cd tests/e2e && npm test`, Chrome for Testing) | **14/14 pass** (including #13 manifest guard) |
+
+The in-browser popup and options checks (the Task 4 and Task 5 manual smoke) are
+covered by the E2E suite.
+
+**Feedback pipeline (Task 6).** One test POST was sent 2026-10-31T18:56:58Z. The
+row "v2.1 pipeline test - safe to delete" (version 2.1.0-test) arrived in the
+Crunchyroll Feedback sheet, so the Apps Script pipeline works. The `{"ok":true}`
+success marker is not yet in the script; the owner needs to add it and delete the
+test row.
+
+**Owner checks still open**
+- Live signed-in test on Crunchyroll and HIDIVE (real player, real episode pages).
+- Upgrade test from v2.0.0: settings, time-saved total and per-show speeds survive.
+
+---
+
 # v2.0.0 — Test Report, Compliance Audit & Manual Test Plan
 
 _Last updated: 2026-08-25 — retested on Chrome 152 (current stable)_

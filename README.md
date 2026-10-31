@@ -18,7 +18,7 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/manifest-v3-blue" alt="Manifest V3">
-  <img src="https://img.shields.io/badge/version-2.0.0-orange" alt="Version">
+  <img src="https://img.shields.io/badge/version-2.1.0-orange" alt="Version">
   <img src="https://img.shields.io/badge/license-MIT-green" alt="License">
   <img src="https://img.shields.io/badge/chrome-extension-yellow" alt="Chrome Extension">
 </p>
@@ -37,13 +37,13 @@
 | **Auto-Skip Intro/Outro** | Automatically skips openings, endings, recaps & credits |
 | **Multi-Site** | Works on both Crunchyroll and HIDIVE |
 | **Stats Dashboard** | Full page with time-saved graph, watch streaks, top series & milestone badges |
-| **Custom Shortcuts** | Rebind keyboard shortcuts right from the popup |
-| **Quick Buttons** | One-click presets: 0.5x, 0.75x, 1.0x, 1.25x, 1.5x, 2.0x |
+| **Custom Shortcuts** | Rebind keyboard shortcuts on the settings page |
+| **Quick Presets** | One-click presets: 1x, 1.25x, 1.5x, 1.75x, 2x, plus fine −/+ controls |
 | **On-Screen Indicator** | See current speed with auto-hiding overlay |
 | **Remember Speed** | Persists your preferred speed across sessions |
-| **Per-Series Speed** | Remember different speeds for different anime |
+| **Per-Show Speed** | Remembers a different speed for each show, automatically |
 | **Customizable Step** | Choose speed increment: 0.05x, 0.10x, or 0.25x |
-| **Send Feedback** | Built-in feedback form to report bugs or request features |
+| **Send Feedback** | Built-in feedback form on the settings page to report bugs or request features |
 | **Dark Theme** | Seamlessly matches Crunchyroll's aesthetic |
 
 ---
@@ -87,28 +87,36 @@ The extension icon appears in your toolbar. Navigate to [Crunchyroll](https://cr
 
 ### Popup Controls
 
-Click the extension icon while on Crunchyroll to open the control panel:
+The popup has two states.
 
-- **Slider** — Drag to set any speed from 0.25x to 4.0x
-- **Quick Buttons** — Instant presets (0.5x, 0.75x, 1.0x, 1.25x, 1.5x, 2.0x)
-- **Slower / Faster** — Fine-tune by your chosen step size (0.05x, 0.10x, or 0.25x)
-- **Reset** — Return to normal speed (1.0x)
+**Watching** (an episode with a video is open on Crunchyroll or HIDIVE):
+
+- **Speed** — Big speed number with **−** / **+** buttons (step size comes from your Speed step setting)
+- **Presets** — 1x · 1.25 · 1.5 · 1.75 · 2x
+- **Saved for {Show}** — Speed is remembered for each show automatically. **Use for all shows** clears the per-show speeds
+- **Auto-skip intros** — Toggle right in the popup
+- **Time saved this week**, plus shortcuts to the stats and settings pages
+
+**Idle** (anywhere else): time saved this week, intros skipped and streak, all-time saved, your top show, and the auto-skip toggle. Open an episode to change speed.
+
+A show with no saved speed starts at the last speed you chose. Tabs opened before an update need a reload before speed controls turn on.
 
 ### Settings
 
+Settings live on the options page (the stats page). Open it from the settings icon in the popup.
+
 | Setting | Description |
 |---------|-------------|
-| **Remember speed** | Save your preferred speed across sessions |
-| **Show indicator** | Toggle the on-screen speed display |
-| **Per-series speed** | Remember different speeds per anime series |
-| **Auto-skip intro/outro** | Automatically click Skip Intro / Skip Outro buttons |
-| **Speed step** | Choose fine control increment (0.05x, 0.10x, 0.25x) |
+| **Remember speed** | Save your speed across sessions, per show |
+| **Show speed overlay on video** | Toggle the on-screen speed display |
+| **Speed step for − / +** | Choose the increment: 0.05x, 0.10x, 0.25x |
+| **Auto-skip intros** | Automatically click Skip Intro / Skip Outro buttons |
 
-Click the **time-saved counter** at the bottom of the popup to open the full **Stats Dashboard** — a 30-day activity graph, watch streaks, your top series, and milestone badges.
+The same page has the full **Stats Dashboard** — a 30-day activity graph, watch streaks, your top series, and milestone badges — along with **Keyboard shortcuts** and **Send feedback** (Bug, Feature or General).
 
 ### Customizing Shortcuts
 
-Click **Customize shortcuts** in the popup to rebind the in-page keys: click a shortcut, then press your new combination. These work while watching without leaving the page.
+Open the settings page and use the **Keyboard shortcuts** section to rebind the in-page keys: click a shortcut, then press your new combination. These work while watching without leaving the page.
 
 ---
 
@@ -142,22 +150,41 @@ crunchyroll-speed-controller/
 ├── manifest.json        # Extension configuration (Manifest V3)
 ├── background/
 │   └── service-worker.js    # Commands, install/update migrations
+├── shared/
+│   ├── logic.js         # Pure shared logic (speed, per-show, popup state, feedback checks)
+│   ├── tokens.css       # Design tokens
+│   └── icons.js         # Inline SVG icons
 ├── content/
 │   ├── sites.js         # Per-site config (Crunchyroll, HIDIVE)
 │   ├── content.js       # Speed control, auto-skip, stats, shortcuts
 │   └── content.css      # Indicator & skip-toast styles
 ├── popup/
-│   ├── popup.html       # Popup UI structure
+│   ├── popup.html       # Popup UI structure (watching and idle states)
 │   ├── popup.css        # Dark theme styling
-│   └── popup.js         # Popup logic & settings
+│   └── popup.js         # Popup logic
 ├── options/
-│   ├── options.html     # Stats dashboard
+│   ├── options.html     # Stats dashboard, settings, shortcuts, feedback
 │   ├── options.css      # Dashboard styling
-│   └── options.js       # Stats, streaks, badges, shortcuts
+│   └── options.js       # Stats, streaks, badges, settings, shortcuts, feedback
 ├── icons/               # Extension icons (16, 32, 48, 128px)
+├── tests/
+│   ├── logic.test.js    # Unit tests for shared/logic.js
+│   └── e2e/             # Playwright + Chrome for Testing smoke suite
 ├── store-assets/        # Chrome Web Store graphics
 └── privacy-policy.md    # Privacy policy
 ```
+
+### Running tests
+
+```bash
+# Unit tests (Node 18+)
+node --test tests/logic.test.js
+
+# End-to-end smoke suite (loads the unpacked extension into Chrome for Testing)
+cd tests/e2e && npm install && npm test
+```
+
+The E2E suite needs Chrome for Testing, because branded Chrome ignores `--load-extension`. Point `CFT_PATH` at its executable, or install it into `~/.cache/puppeteer` (an existing install there is picked up automatically).
 
 ---
 
@@ -186,7 +213,7 @@ Contributions are welcome! Feel free to:
 5. Open a Pull Request
 
 ### Ideas for Contributions
-- [x] Custom keyboard shortcut configuration in popup
+- [x] Custom keyboard shortcut configuration
 - [x] Support for other streaming sites (HIDIVE)
 - [x] Detailed statistics dashboard with time-saved graphs
 - [x] Auto-skip intros/outros
@@ -197,7 +224,7 @@ Contributions are welcome! Feel free to:
 
 ## Support
 
-This extension is free and always will be. If it's saved you some time, the popup (and the Stats Dashboard) has **quick-tip buttons** — $1 / $3 / $5 or a custom amount — that open a secure PayPal express checkout with the amount pre-filled. Tips are optional and keep the project maintained.
+This extension is free and always will be. If it's saved you some time, the popup shows a one-time thank-you card when your total time saved passes 5, 25 and 100 hours, and the stats page has a quiet tip link. Both just open a PayPal.me page in a new tab. Tips are optional and keep the project maintained.
 
 ---
 
