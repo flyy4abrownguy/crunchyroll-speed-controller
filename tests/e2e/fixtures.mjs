@@ -29,6 +29,9 @@ export const crWatchNoVideo = page(`${SERIES_LINK}<p>Player failed to load</p>`)
 // HIDIVE watch page.
 export const hidiveWatch = page('<video></video>');
 
+// HIDIVE watch URL with only a numeric id, no show slug.
+export const hidiveNumeric = page('<video></video>');
+
 export const examplePage = page('<h1>Example Domain</h1>');
 export const webStorePage = page('<h1>Chrome Web Store</h1>');
 
@@ -40,6 +43,7 @@ export const URLS = {
   crCatalog: 'https://www.crunchyroll.com/videos/popular',
   crWatchNoVideo: 'https://www.crunchyroll.com/watch/XYZ/ep',
   hidiveWatch: 'https://www.hidive.com/video/12345/some-show-episode-1',
+  hidiveNumeric: 'https://www.hidive.com/video/412345',
   example: 'https://example.com/'
 };
 
@@ -52,5 +56,6 @@ export const PAGES = {
   [URLS.crCatalog]: crCatalog,
   [URLS.crWatchNoVideo]: crWatchNoVideo,
   [URLS.hidiveWatch]: hidiveWatch,
+  [URLS.hidiveNumeric]: hidiveNumeric,
   [URLS.example]: examplePage
 };

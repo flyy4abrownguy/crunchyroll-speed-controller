@@ -475,4 +475,43 @@ describe('Speed Controller v2.1 smoke', () => {
     assert.ok(!('another-show' in seriesSpeeds), `unsaved show was written: ${JSON.stringify(seriesSpeeds)}`);
     assert.deepEqual(seriesSpeeds, { 'frieren-beyond-journeys-end': 2 });
   });
+
+  test('15. stale series link after in-page navigation', async () => {
+    const seeded = { 'frieren-beyond-journeys-end': 2, 'another-show': 1.25 };
+    await setSync({ speed: 1.5, seriesSpeeds: seeded });
+    const { page, tabId } = await openSite(URLS.crWatch);
+    await expectRate(page, 2);
+
+    // Like Back/Forward on the real site: the URL changes first and the old
+    // page's series link stays in the DOM until the SPA re-renders.
+    await page.evaluate(() => {
+      history.pushState({}, '', '/watch/DEF/other-episode');
+      setTimeout(() => {
+        const fresh = document.createElement('a');
+        fresh.href = '/series/G2/another-show';
+        fresh.textContent = 'Another Show';
+        document.querySelector('a[href*="/series/"]').replaceWith(fresh);
+      }, 600);
+    });
+    // A popup opened right away reads the series info while the stale link
+    // is still there; that read must not settle the show.
+    const early = await contentReady(tabId);
+    assert.equal(early.slugResolved, false, `stale link accepted: ${JSON.stringify(early)}`);
+
+    await expectRate(page, 1.25, 4000);
+    const popup = await openPopup(tabId);
+    await expectVisible(popup, '#watching');
+    assert.equal(await textOf(popup, '#showName'), 'Another Show');
+
+    const { seriesSpeeds } = await sync('seriesSpeeds');
+    assert.deepEqual(seriesSpeeds, seeded, `per-show speeds changed: ${JSON.stringify(seriesSpeeds)}`);
+  });
+
+  test('16. HIDIVE numeric-only URL', async () => {
+    const { tabId } = await openSite(URLS.hidiveNumeric);
+    const popup = await openPopup(tabId);
+    await expectVisible(popup, '#watching');
+    assert.equal(await textOf(popup, '#showName'), 'HIDIVE');
+    assert.equal(await popup.locator('#seriesLine').isHidden(), true);
+  });
 });
