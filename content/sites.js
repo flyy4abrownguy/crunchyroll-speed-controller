@@ -36,6 +36,8 @@
   function crunchyrollSeriesInfo() {
     const path = location.pathname;
     if (path !== crInitialPath) crNavigated = true;
+    // A candidate from a path we've since left must not confirm on return.
+    if (crCandidate.path && crCandidate.path !== path) crCandidate = { path: null, slug: null, at: 0 };
     const LANG = '(?:[a-z]{2}(?:-[a-zA-Z]{2})?\\/)?';
 
     const seriesMatch = path.match(new RegExp(`^\\/${LANG}series\\/([^/]+)(?:\\/([^/]+))?`));
