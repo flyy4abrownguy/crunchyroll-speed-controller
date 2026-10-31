@@ -1,12 +1,10 @@
-// Speed Controller - Stats dashboard
+// Speed Controller - Options page: stats, settings, shortcuts, feedback
 
-// Your PayPal.me username (the part after paypal.me/).
-const PAYPAL_USERNAME = 'AkilRajpariLLC';
+const L = globalThis.CSC_LOGIC;
+const ICONS = globalThis.CSC_ICONS;
+const { fmtDuration, dateKey, computeStreaks, prettifySlug, paypalUrl } = L;
 
-function paypalUrl(amount) {
-  const base = `https://www.paypal.me/${PAYPAL_USERNAME}`;
-  return amount ? `${base}/${amount}USD` : base;
-}
+const $ = (id) => document.getElementById(id);
 
 const DEFAULT_SHORTCUTS = {
   increaseSpeed:   { code: 'Period', shift: true, ctrl: false, alt: false, meta: false },
@@ -15,65 +13,29 @@ const DEFAULT_SHORTCUTS = {
   toggleIndicator: { code: 'KeyV',   shift: true, ctrl: false, alt: false, meta: false }
 };
 
+const DEFAULT_STATS = { totalTimeSavedSec: 0, totalTimeWatchedSec: 0, introsSkipped: 0, timeSkippedSec: 0 };
+const FEEDBACK_COOLDOWN_MS = 5 * 60 * 1000;
+
 let shortcuts = { ...DEFAULT_SHORTCUTS };
 
-// ---- Formatting ----
-function fmtDuration(sec) {
-  sec = Math.round(sec || 0);
-  if (sec < 60) return `${sec}s`;
-  if (sec < 3600) return `${Math.floor(sec / 60)}m`;
-  const h = Math.floor(sec / 3600);
-  const m = Math.floor((sec % 3600) / 60);
-  return m > 0 ? `${h}h ${m}m` : `${h}h`;
-}
-
-function dateKey(d) {
-  const m = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${d.getFullYear()}-${m}-${day}`;
-}
-
-// ---- Streaks ----
-function computeStreaks(daily) {
-  const active = new Set(
-    Object.keys(daily).filter((k) => (daily[k].watchedSec || 0) > 0)
-  );
-  if (active.size === 0) return { current: 0, longest: 0 };
-
-  // Current streak: walk back from today (or yesterday if today is empty).
-  let current = 0;
-  const d = new Date();
-  if (!active.has(dateKey(d))) d.setDate(d.getDate() - 1);
-  while (active.has(dateKey(d))) {
-    current++;
-    d.setDate(d.getDate() - 1);
-  }
-
-  // Longest streak across all recorded days.
-  const sorted = [...active].sort();
-  let longest = 1;
-  let run = 1;
-  for (let i = 1; i < sorted.length; i++) {
-    const prev = new Date(sorted[i - 1] + 'T00:00:00');
-    const cur = new Date(sorted[i] + 'T00:00:00');
-    const diff = Math.round((cur - prev) / 86400000);
-    run = diff === 1 ? run + 1 : 1;
-    if (run > longest) longest = run;
-  }
-  return { current, longest };
+function paintIcons() {
+  document.querySelectorAll('[data-icon]').forEach((el) => {
+    const markup = ICONS[el.dataset.icon];
+    if (markup) el.innerHTML = markup; // trusted static constants
+  });
 }
 
 // ---- Render ----
 function renderCards(stats) {
-  document.getElementById('timeSaved').textContent = fmtDuration(stats.totalTimeSavedSec);
-  document.getElementById('timeSkipped').textContent = fmtDuration(stats.timeSkippedSec);
-  document.getElementById('introsSkipped').textContent = stats.introsSkipped || 0;
-  document.getElementById('timeWatched').textContent = fmtDuration(stats.totalTimeWatchedSec);
+  $('timeSaved').textContent = fmtDuration(stats.totalTimeSavedSec);
+  $('timeSkipped').textContent = fmtDuration(stats.timeSkippedSec);
+  $('introsSkipped').textContent = stats.introsSkipped || 0;
+  $('timeWatched').textContent = fmtDuration(stats.totalTimeWatchedSec);
 }
 
 function renderChart(daily) {
-  const chart = document.getElementById('chart');
-  const empty = document.getElementById('chartEmpty');
+  const chart = $('chart');
+  const empty = $('chartEmpty');
   chart.innerHTML = '';
 
   const days = [];
@@ -99,13 +61,9 @@ function renderChart(daily) {
   }
 }
 
-function prettifySlug(slug) {
-  return slug.replace(/-/g, ' ').replace(/\s+/g, ' ').trim();
-}
-
 function renderSeries(seriesStats) {
-  const list = document.getElementById('seriesList');
-  const empty = document.getElementById('seriesEmpty');
+  const list = $('seriesList');
+  const empty = $('seriesEmpty');
   list.innerHTML = '';
 
   const rows = Object.entries(seriesStats)
@@ -137,23 +95,24 @@ function renderBadges(stats) {
   const savedH = (stats.totalTimeSavedSec || 0) / 3600;
   const skips = stats.introsSkipped || 0;
   const defs = [
-    { icon: '☕', title: 'First hour', desc: '1h saved', earned: savedH >= 1 },
-    { icon: '⏱️', title: 'Time bender', desc: '5h saved', earned: savedH >= 5 },
-    { icon: '🚀', title: 'Speed demon', desc: '10h saved', earned: savedH >= 10 },
-    { icon: '🏆', title: 'Marathoner', desc: '25h saved', earned: savedH >= 25 },
-    { icon: '💎', title: 'Time lord', desc: '50h saved', earned: savedH >= 50 },
-    { icon: '👑', title: 'Legend', desc: '100h saved', earned: savedH >= 100 },
-    { icon: '⏭️', title: 'Skipper', desc: '10 skips', earned: skips >= 10 },
-    { icon: '⚡', title: 'No filler', desc: '100 skips', earned: skips >= 100 }
+    { icon: 'clock', title: 'First hour', desc: '1h saved', earned: savedH >= 1 },
+    { icon: 'chart', title: 'Time bender', desc: '5h saved', earned: savedH >= 5 },
+    { icon: 'plus', title: 'Speed demon', desc: '10h saved', earned: savedH >= 10 },
+    { icon: 'trophy', title: 'Marathoner', desc: '25h saved', earned: savedH >= 25 },
+    { icon: 'star', title: 'Time lord', desc: '50h saved', earned: savedH >= 50 },
+    { icon: 'heart', title: 'Legend', desc: '100h saved', earned: savedH >= 100 },
+    { icon: 'skip', title: 'Skipper', desc: '10 skips', earned: skips >= 10 },
+    { icon: 'check', title: 'No filler', desc: '100 skips', earned: skips >= 100 }
   ];
 
-  const el = document.getElementById('badges');
+  const el = $('badges');
   el.innerHTML = '';
   for (const b of defs) {
     const div = document.createElement('div');
     div.className = 'badge ' + (b.earned ? 'earned' : 'locked');
+    // Icon markup is a trusted constant from shared/icons.js; text is static.
     div.innerHTML = `
-      <span class="badge-icon">${b.icon}</span>
+      <span class="badge-icon icon">${ICONS[b.icon] || ''}</span>
       <span class="badge-text">
         <span class="badge-title">${b.title}</span>
         <span class="badge-desc">${b.desc}</span>
@@ -181,7 +140,7 @@ function shortcutLabel(sc) {
   if (sc.ctrl) parts.push('Ctrl');
   if (sc.alt) parts.push('Alt');
   if (sc.shift) parts.push('Shift');
-  if (sc.meta) parts.push('⌘');
+  if (sc.meta) parts.push('Cmd');
   parts.push(codeToLabel(sc.code));
   return parts.join(' + ');
 }
@@ -195,25 +154,131 @@ function renderShortcuts() {
   });
 }
 
-// ---- Init ----
-async function init() {
-  const local = await chrome.storage.local.get({
-    stats: { totalTimeSavedSec: 0, totalTimeWatchedSec: 0, introsSkipped: 0, timeSkippedSec: 0 },
-    seriesStats: {},
-    daily: {}
-  });
-  const sync = await chrome.storage.sync.get({ shortcuts: DEFAULT_SHORTCUTS });
-  shortcuts = { ...DEFAULT_SHORTCUTS, ...(sync.shortcuts || {}) };
+// ---- Settings ----
+const SPEED_STEP_FALLBACK = 0.25;
 
+function setSpeedStepControl(value) {
+  const select = $('speedStep');
+  let step = Number(value);
+  if (!Number.isFinite(step) || step <= 0) step = SPEED_STEP_FALLBACK;
+  let match = [...select.options].find((o) => Math.abs(Number(o.value) - step) < 1e-9);
+  if (!match) {
+    // A stored value outside the three presets (older versions or manual
+    // edits): show it as its own option rather than silently rewriting it.
+    match = document.createElement('option');
+    match.value = String(step);
+    match.textContent = `${L.fmtSpeed(step)}x`;
+    select.appendChild(match);
+  }
+  select.value = match.value;
+}
+
+function wireSettings() {
+  for (const key of ['rememberSpeed', 'showIndicator', 'autoSkip']) {
+    $(key).addEventListener('change', (e) => {
+      chrome.storage.sync.set({ [key]: e.target.checked });
+    });
+  }
+  $('speedStep').addEventListener('change', (e) => {
+    chrome.storage.sync.set({ speedStep: parseFloat(e.target.value) });
+  });
+}
+
+// ---- Feedback ----
+function setFeedbackStatus(text, kind) {
+  const el = $('feedbackStatus');
+  el.textContent = text;
+  el.className = 'feedback-status' + (kind ? ` ${kind}` : '');
+}
+
+async function submitFeedback() {
+  const msgEl = $('feedbackMsg');
+  const button = $('feedbackSubmit');
+  const message = msgEl.value.trim();
+  if (!message) {
+    setFeedbackStatus('Write a message first', 'error');
+    return;
+  }
+
+  const { lastFeedbackTime } = await chrome.storage.local.get({ lastFeedbackTime: 0 });
+  if (Date.now() - lastFeedbackTime < FEEDBACK_COOLDOWN_MS) {
+    setFeedbackStatus('You just sent one. Try again in a few minutes.', 'error');
+    return;
+  }
+
+  const type = document.querySelector('input[name="fbType"]:checked').value;
+  const version = chrome.runtime.getManifest().version;
+
+  button.disabled = true;
+  setFeedbackStatus('Sending…', '');
+  try {
+    const { speed } = await chrome.storage.sync.get({ speed: 1 });
+    const response = await chrome.runtime.sendMessage({
+      action: 'submitFeedback',
+      data: { type, message, version, speed, timestamp: new Date().toISOString() }
+    });
+    if (response && response.success) {
+      setFeedbackStatus("Thanks, it's on its way.", 'success');
+      msgEl.value = '';
+      await chrome.storage.local.set({ lastFeedbackTime: Date.now() });
+    } else {
+      setFeedbackStatus("Couldn't send. Try again later.", 'error');
+    }
+  } catch (e) {
+    setFeedbackStatus("Couldn't send. Try again later.", 'error');
+  } finally {
+    button.disabled = false;
+  }
+}
+
+// ---- Init ----
+function renderStats(local) {
   renderCards(local.stats);
   renderChart(local.daily);
   renderSeries(local.seriesStats);
   renderBadges(local.stats);
+
+  const streaks = computeStreaks(local.daily, new Date());
+  $('streakNum').textContent = streaks.current;
+  $('streakBadge').classList.toggle('active', streaks.current > 0);
+  $('longestStreak').textContent = `Longest streak: ${streaks.longest} day${streaks.longest === 1 ? '' : 's'}`;
+}
+
+async function loadStats() {
+  const local = await chrome.storage.local.get({ stats: DEFAULT_STATS, seriesStats: {}, daily: {} });
+  renderStats(local);
+}
+
+// The page is built from static sections, but the stats above #settings and
+// #feedback change height once they render. Re-assert the anchor afterwards so
+// a deep link from the popup lands on its section.
+function scrollToHash() {
+  const id = decodeURIComponent(location.hash.slice(1));
+  const target = id && $(id);
+  if (target) target.scrollIntoView();
+}
+
+async function init() {
+  paintIcons();
+  wireSettings();
+
+  const sync = await chrome.storage.sync.get({
+    shortcuts: DEFAULT_SHORTCUTS,
+    rememberSpeed: true,
+    showIndicator: true,
+    speedStep: SPEED_STEP_FALLBACK,
+    autoSkip: true
+  });
+  $('rememberSpeed').checked = sync.rememberSpeed !== false;
+  $('showIndicator').checked = sync.showIndicator !== false;
+  $('autoSkip').checked = sync.autoSkip !== false;
+  setSpeedStepControl(sync.speedStep);
+
+  shortcuts = { ...DEFAULT_SHORTCUTS, ...(sync.shortcuts || {}) };
   renderShortcuts();
 
-  const streaks = computeStreaks(local.daily);
-  document.getElementById('streakNum').textContent = streaks.current;
-  document.getElementById('longestStreak').textContent = `Longest streak: ${streaks.longest} day${streaks.longest === 1 ? '' : 's'}`;
+  await loadStats();
+  scrollToHash();
 }
 
 document.querySelectorAll('.shortcut-key').forEach((btn) => {
@@ -238,26 +303,26 @@ document.addEventListener('keydown', (e) => {
   renderShortcuts();
 });
 
-document.getElementById('openGlobalShortcuts').addEventListener('click', (e) => {
+$('openGlobalShortcuts').addEventListener('click', (e) => {
   e.preventDefault();
   chrome.tabs.create({ url: 'chrome://extensions/shortcuts' });
 });
 
-document.querySelectorAll('.tip-btn').forEach((btn) => {
-  btn.addEventListener('click', (e) => {
-    e.preventDefault();
-    chrome.tabs.create({ url: paypalUrl(btn.dataset.amount) });
-  });
+$('tipLink').href = paypalUrl();
+
+$('feedbackSubmit').addEventListener('click', submitFeedback);
+$('feedbackMsg').addEventListener('input', () => setFeedbackStatus('', ''));
+document.querySelectorAll('input[name="fbType"]').forEach((r) => {
+  r.addEventListener('change', () => setFeedbackStatus('', ''));
 });
 
-document.getElementById('resetStats').addEventListener('click', async () => {
+$('resetStats').addEventListener('click', async () => {
   if (!confirm('Reset all watch stats? This cannot be undone.')) return;
-  await chrome.storage.local.set({
-    stats: { totalTimeSavedSec: 0, totalTimeWatchedSec: 0, introsSkipped: 0, timeSkippedSec: 0 },
-    seriesStats: {},
-    daily: {}
-  });
-  init();
+  const cleared = { stats: { ...DEFAULT_STATS }, seriesStats: {}, daily: {} };
+  await chrome.storage.local.set(cleared);
+  renderStats(cleared);
 });
+
+window.addEventListener('hashchange', scrollToHash);
 
 init();

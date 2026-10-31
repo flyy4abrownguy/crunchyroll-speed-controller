@@ -3,7 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Speed Controller — Stats</title>
+  <title>Speed Controller options</title>
+  <link rel="stylesheet" href="../shared/tokens.css">
   <link rel="stylesheet" href="options.css">
 </head>
 <body>
@@ -14,7 +15,7 @@
         <p class="subtitle">Every second you've reclaimed with Speed Controller.</p>
       </div>
       <div class="streak-badge" id="streakBadge">
-        <span class="flame">&#128293;</span>
+        <span class="flame icon" data-icon="flame"></span>
         <span class="streak-num" id="streakNum">0</span>
         <span class="streak-label">day streak</span>
       </div>
@@ -59,6 +60,35 @@
       <div class="badges" id="badges"></div>
     </section>
 
+    <section class="panel" id="settings">
+      <h2>Settings</h2>
+      <div class="setting-list">
+        <label class="toggle-row">
+          <span>Remember speed</span>
+          <input type="checkbox" id="rememberSpeed">
+          <span class="switch"></span>
+        </label>
+        <label class="toggle-row">
+          <span>Show speed overlay on video</span>
+          <input type="checkbox" id="showIndicator">
+          <span class="switch"></span>
+        </label>
+        <div class="toggle-row select-row">
+          <label for="speedStep">Speed step for &minus; / +</label>
+          <select id="speedStep" class="select">
+            <option value="0.05">0.05x</option>
+            <option value="0.1">0.10x</option>
+            <option value="0.25">0.25x</option>
+          </select>
+        </div>
+        <label class="toggle-row">
+          <span>Auto-skip intros</span>
+          <input type="checkbox" id="autoSkip">
+          <span class="switch"></span>
+        </label>
+      </div>
+    </section>
+
     <section class="panel">
       <h2>Keyboard shortcuts</h2>
       <p class="panel-sub">Click a key, then press your combo. Press Esc to cancel.</p>
@@ -66,29 +96,42 @@
         <div class="shortcut-row" data-action="increaseSpeed"><span>Faster</span><button class="shortcut-key" data-action="increaseSpeed"></button></div>
         <div class="shortcut-row" data-action="decreaseSpeed"><span>Slower</span><button class="shortcut-key" data-action="decreaseSpeed"></button></div>
         <div class="shortcut-row" data-action="resetSpeed"><span>Reset speed</span><button class="shortcut-key" data-action="resetSpeed"></button></div>
-        <div class="shortcut-row" data-action="toggleIndicator"><span>Toggle indicator</span><button class="shortcut-key" data-action="toggleIndicator"></button></div>
+        <div class="shortcut-row" data-action="toggleIndicator"><span>Toggle speed overlay</span><button class="shortcut-key" data-action="toggleIndicator"></button></div>
       </div>
       <p class="panel-sub">Global shortcuts work even outside the page. <a href="#" id="openGlobalShortcuts">Edit them in Chrome &rsaquo;</a></p>
     </section>
 
-    <section class="support">
-      <div class="support-emoji">&#9749;</div>
-      <h2>Enjoying the extension?</h2>
-      <p>It's free and always will be. If it's saved you some time, a small tip keeps it brewing. &#9829;</p>
-      <div class="tip-buttons">
-        <a href="#" class="tip-btn" data-amount="1">$1</a>
-        <a href="#" class="tip-btn" data-amount="3">$3</a>
-        <a href="#" class="tip-btn" data-amount="5">$5</a>
-        <a href="#" class="tip-btn custom" data-amount="">Other</a>
+    <section class="panel" id="feedback">
+      <h2>Send feedback</h2>
+      <div class="feedback-types" role="radiogroup" aria-label="Feedback type">
+        <label class="feedback-type">
+          <input type="radio" name="fbType" value="bug" checked>
+          <span>Bug</span>
+        </label>
+        <label class="feedback-type">
+          <input type="radio" name="fbType" value="feature">
+          <span>Feature</span>
+        </label>
+        <label class="feedback-type">
+          <input type="radio" name="fbType" value="general">
+          <span>General</span>
+        </label>
       </div>
-      <p class="tip-note">&#128274; Secure express checkout via PayPal</p>
+      <textarea id="feedbackMsg" class="textarea" placeholder="What happened, or what would you like to see?" maxlength="500" rows="4" aria-label="Feedback message"></textarea>
+      <div class="feedback-actions">
+        <button type="button" class="btn-primary" id="feedbackSubmit">Send</button>
+        <span class="feedback-status" id="feedbackStatus" role="status" aria-live="polite"></span>
+      </div>
     </section>
 
     <footer class="page-footer">
-      <span id="resetStats" class="reset-stats">Reset all stats</span>
+      <span class="tip-line">Free and ad-free. <a id="tipLink" href="#" target="_blank" rel="noopener noreferrer">Tip the developer</a></span>
+      <button type="button" id="resetStats" class="reset-stats">Reset all stats</button>
     </footer>
   </div>
 
+  <script src="../shared/logic.js"></script>
+  <script src="../shared/icons.js"></script>
   <script src="options.js"></script>
 </body>
 </html>
