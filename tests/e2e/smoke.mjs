@@ -318,6 +318,9 @@ describe('Speed Controller v2.1 smoke', () => {
   });
 
   test('6. late series link', async () => {
+    // A saved per-show speed that differs from both the global speed and the
+    // user's pick: a late per-show apply overriding the user would show 1.25.
+    await setSync({ speed: 1, seriesSpeeds: { 'frieren-beyond-journeys-end': 1.25 } });
     const page = await context.newPage();
     await page.goto(URLS.crWatchLateLink);
     const loadedAt = Date.now();
@@ -360,7 +363,11 @@ describe('Speed Controller v2.1 smoke', () => {
     const { tabId } = await openSite(URLS.crWatchNoVideo, { wantVideo: false });
     const popup = await openPopup(tabId);
     const openedAt = Date.now();
-    await expectVisible(popup, '#notWorkingLink', 3000);
+    // No blank popup while probing: idle shows right away, link still hidden.
+    await expectVisible(popup, '#idle', 1000);
+    assert.equal(await popup.locator('#notWorkingLink').isHidden(), true, 'link shown before probing finished');
+    console.log(`# broken-watch: idle shown ${Date.now() - openedAt} ms after popup load`);
+    await expectVisible(popup, '#notWorkingLink', 4000);
     console.log(`# broken-watch: link shown ${Date.now() - openedAt} ms after popup load`);
     assert.equal(await popup.locator('#idle').isVisible(), true);
   });
