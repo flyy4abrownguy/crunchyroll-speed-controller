@@ -36,7 +36,7 @@
   "content_scripts": [
     {
       "matches": ["*://*.crunchyroll.com/*", "*://*.hidive.com/*"],
-      "js": ["content/sites.js", "content/content.js"],
+      "js": ["shared/logic.js", "content/sites.js", "content/content.js"],
       "css": ["content/content.css"],
       "run_at": "document_idle",
       "all_frames": true

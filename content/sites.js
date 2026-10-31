@@ -9,8 +9,57 @@
   // Anchored on both ends so we never click things like "Skip to next episode".
   const SKIP_TEXT_RE = /^skip(\s+(intro|opening|op|outro|ending|ed|recap|credits|preview))?(\s+button)?[\s.!›»→]*$/i;
 
-  // Resolved series slug for the current watch page (see getSeriesSlug below).
+  // Resolved series slug for the current watch page (see crunchyrollSeriesInfo).
   let crSlugCache = { path: null, slug: null };
+
+  // Series identity on Crunchyroll.
+  //
+  // Series pages are /series/{id}/{series-slug} — the slug is the show.
+  // Watch pages are /watch/{id}/{episode-slug}, where the slug is the
+  // EPISODE title ("maomao", "the-garden-party"), NOT the series. Keying
+  // off it would give every episode its own bucket, so on watch pages we
+  // read the one /series/ link the page renders instead, and only fall
+  // back to the episode slug while that link has yet to render. The
+  // fallback is reported as resolved: false so callers never persist it.
+  function crunchyrollSeriesInfo() {
+    const path = location.pathname;
+    const LANG = '(?:[a-z]{2}(?:-[a-zA-Z]{2})?\\/)?';
+
+    const seriesMatch = path.match(new RegExp(`^\\/${LANG}series\\/([^/]+)(?:\\/([^/]+))?`));
+    if (seriesMatch) return { slug: seriesMatch[2] || seriesMatch[1], resolved: true };
+
+    const watchMatch = path.match(new RegExp(`^\\/${LANG}watch\\/[^/]+\\/([^/]+)`));
+    if (!watchMatch) return { slug: null, resolved: false };
+
+    // Cached per path so the 1 Hz main loop doesn't re-query the DOM.
+    if (crSlugCache.path === path && crSlugCache.slug) return { slug: crSlugCache.slug, resolved: true };
+
+    const link = document.querySelector('a[href*="/series/"]');
+    const href = link ? link.getAttribute('href') || '' : '';
+    const fromLink = href.match(/\/series\/([^/?#]+)(?:\/([^/?#]+))?/);
+    if (fromLink) {
+      const slug = fromLink[2] || fromLink[1];
+      crSlugCache = { path, slug };
+      return { slug, resolved: true };
+    }
+
+    // Series link not rendered yet — don't cache, retry next tick.
+    return { slug: watchMatch[1].replace(/-episode-\d+.*$/, '') || null, resolved: false };
+  }
+
+  // HIDIVE watch URLs vary; fall back to the first meaningful path segment.
+  function hidiveSeriesInfo() {
+    const parts = location.pathname.split('/').filter(Boolean);
+    // e.g. /video/12345/my-series-title or /season/1234/my-series
+    const idx = parts.findIndex((p) => /^\d+$/.test(p));
+    let slug;
+    if (idx >= 0 && parts[idx + 1]) {
+      slug = parts[idx + 1].replace(/-e(pisode)?-?\d+.*$/i, '');
+    } else {
+      slug = parts[parts.length - 1] || null;
+    }
+    return { slug, resolved: slug !== null };
+  }
 
   const SITES = [
     {
@@ -26,39 +75,8 @@
         '.skip-button'
       ],
       skipTextRe: SKIP_TEXT_RE,
-      // Series identity.
-      //
-      // Series pages are /series/{id}/{series-slug} — the slug is the show.
-      // Watch pages are /watch/{id}/{episode-slug}, where the slug is the
-      // EPISODE title ("maomao", "the-garden-party"), NOT the series. Keying
-      // off it would give every episode its own bucket, so on watch pages we
-      // read the one /series/ link the page renders instead, and only fall
-      // back to the episode slug while that link has yet to render.
-      getSeriesSlug: () => {
-        const path = location.pathname;
-        const LANG = '(?:[a-z]{2}(?:-[a-zA-Z]{2})?\\/)?';
-
-        const seriesMatch = path.match(new RegExp(`^\\/${LANG}series\\/([^/]+)(?:\\/([^/]+))?`));
-        if (seriesMatch) return seriesMatch[2] || seriesMatch[1];
-
-        const watchMatch = path.match(new RegExp(`^\\/${LANG}watch\\/[^/]+\\/([^/]+)`));
-        if (!watchMatch) return null;
-
-        // Cached per path so the 1 Hz main loop doesn't re-query the DOM.
-        if (crSlugCache.path === path && crSlugCache.slug) return crSlugCache.slug;
-
-        const link = document.querySelector('a[href*="/series/"]');
-        const href = link ? link.getAttribute('href') || '' : '';
-        const fromLink = href.match(/\/series\/([^/?#]+)(?:\/([^/?#]+))?/);
-        if (fromLink) {
-          const slug = fromLink[2] || fromLink[1];
-          crSlugCache = { path, slug };
-          return slug;
-        }
-
-        // Series link not rendered yet — don't cache, retry next tick.
-        return watchMatch[1].replace(/-episode-\d+.*$/, '');
-      }
+      getSeriesInfo: crunchyrollSeriesInfo,
+      getSeriesSlug: () => crunchyrollSeriesInfo().slug
     },
     {
       id: 'hidive',
@@ -70,16 +88,8 @@
         'button[aria-label*="skip" i]'
       ],
       skipTextRe: SKIP_TEXT_RE,
-      // HIDIVE watch URLs vary; fall back to the first meaningful path segment.
-      getSeriesSlug: () => {
-        const parts = location.pathname.split('/').filter(Boolean);
-        // e.g. /video/12345/my-series-title or /season/1234/my-series
-        const idx = parts.findIndex((p) => /^\d+$/.test(p));
-        if (idx >= 0 && parts[idx + 1]) {
-          return parts[idx + 1].replace(/-e(pisode)?-?\d+.*$/i, '');
-        }
-        return parts[parts.length - 1] || null;
-      }
+      getSeriesInfo: hidiveSeriesInfo,
+      getSeriesSlug: () => hidiveSeriesInfo().slug
     }
   ];
 

@@ -30,8 +30,13 @@
   let currentSpeed = 1.0;
   let showIndicator = true;
   let speedStep = 0.25;
-  let perSeriesSpeed = false;
+  let rememberSpeed = true;
+  // Per-show memory is always on in v2.1 (the UI toggle is gone); a missing
+  // key must never disable it.
+  let perSeriesSpeed = true;
   let seriesSpeeds = {};
+  // Path whose per-show speed has been applied (or overridden by the user).
+  let appliedSeriesPath = null;
   let autoSkip = true;
   let shortcuts = { ...DEFAULT_SHORTCUTS };
 
@@ -58,7 +63,7 @@
       rememberSpeed: true,
       showIndicator: true,
       speedStep: 0.25,
-      perSeriesSpeed: false,
+      perSeriesSpeed: true,
       seriesSpeeds: {},
       autoSkip: true,
       shortcuts: DEFAULT_SHORTCUTS
@@ -66,6 +71,7 @@
 
     showIndicator = settings.showIndicator;
     speedStep = settings.speedStep;
+    rememberSpeed = settings.rememberSpeed;
     perSeriesSpeed = settings.perSeriesSpeed;
     seriesSpeeds = settings.seriesSpeeds || {};
     autoSkip = settings.autoSkip;
@@ -73,10 +79,9 @@
 
     if (settings.rememberSpeed) currentSpeed = settings.speed;
 
-    if (perSeriesSpeed) {
-      const slug = site.getSeriesSlug();
-      if (slug && seriesSpeeds[slug] !== undefined) currentSpeed = seriesSpeeds[slug];
-    }
+    // Sets currentSpeed if this show has a saved speed; if the series slug
+    // hasn't resolved yet, the main loop retries every tick.
+    applySeriesSpeedIfReady();
 
     const local = await chrome.storage.local.get({
       stats: stats, seriesStats: {}, daily: {}
@@ -105,6 +110,7 @@
   function mainLoop() {
     const videos = document.querySelectorAll('video');
     if (videos.length > 0 && !videoElement) findAndSetupVideo();
+    applySeriesSpeedIfReady();
 
     // Ensure our speed sticks (sites reset playbackRate on segment changes).
     videos.forEach((v) => { if (v.playbackRate !== currentSpeed) v.playbackRate = currentSpeed; });
@@ -287,9 +293,9 @@
       videoElement = videos[0];
       isVideoFrame = true;
       createIndicator();
-      setVideoSpeed(currentSpeed, false);
+      setVideoSpeed(currentSpeed, { showUI: false });
 
-      videoElement.addEventListener('loadeddata', () => setVideoSpeed(currentSpeed, false));
+      videoElement.addEventListener('loadeddata', () => setVideoSpeed(currentSpeed, { showUI: false }));
       videoElement.addEventListener('play', () => {
         if (videoElement.playbackRate !== currentSpeed) videoElement.playbackRate = currentSpeed;
       });
@@ -305,8 +311,8 @@
         videoElement = newVideo;
         isVideoFrame = true;
         createIndicator();
-        setVideoSpeed(currentSpeed, false);
-        newVideo.addEventListener('loadeddata', () => setVideoSpeed(currentSpeed, false));
+        setVideoSpeed(currentSpeed, { showUI: false });
+        newVideo.addEventListener('loadeddata', () => setVideoSpeed(currentSpeed, { showUI: false }));
       }
     });
     observer.observe(document.body, { childList: true, subtree: true });
@@ -315,14 +321,30 @@
   function checkUrlChange() {
     if (location.href === lastUrl) return;
     lastUrl = location.href;
-    if (perSeriesSpeed) {
-      const slug = site.getSeriesSlug();
-      if (slug && seriesSpeeds[slug] !== undefined) setVideoSpeed(seriesSpeeds[slug]);
-    }
+    applySeriesSpeedIfReady();
+  }
+
+  // Apply this show's saved speed once per page path, as soon as the series
+  // slug has resolved. A user speed change on the path also marks it applied,
+  // so the user's choice wins over a late per-show apply.
+  function applySeriesSpeedIfReady() {
+    if (!(rememberSpeed && perSeriesSpeed)) return;
+    const info = site.getSeriesInfo();
+    if (!info.resolved) return;
+    if (appliedSeriesPath === location.pathname) return;
+    appliedSeriesPath = location.pathname;
+    if (hasSeriesSpeed(info.slug)) setVideoSpeed(seriesSpeeds[info.slug]);
+  }
+
+  // Own-property check, so a slug like "constructor" never reads the prototype.
+  function hasSeriesSpeed(slug) {
+    return !!slug && Object.prototype.hasOwnProperty.call(seriesSpeeds, slug);
   }
 
   // ---- Speed control ----
-  function setVideoSpeed(speed, showUI = true) {
+  // save: true only for user-initiated changes (popup, commands, shortcuts).
+  // Video loads and per-show applies never write to storage.
+  function setVideoSpeed(speed, { showUI = true, save = false } = {}) {
     speed = Math.max(MIN_SPEED, Math.min(MAX_SPEED, speed));
     speed = Math.round(speed * 100) / 100;
     currentSpeed = speed;
@@ -330,39 +352,62 @@
     document.querySelectorAll('video').forEach((v) => { v.playbackRate = speed; });
     if (showUI) showSpeedIndicator(speed);
 
-    chrome.storage.sync.get({ rememberSpeed: true, perSeriesSpeed: false, seriesSpeeds: {} }, (s) => {
-      if (s.rememberSpeed) chrome.storage.sync.set({ speed });
-      if (s.perSeriesSpeed) {
-        const slug = site.getSeriesSlug();
-        if (slug) {
-          const updated = { ...s.seriesSpeeds, [slug]: speed };
-          const keys = Object.keys(updated);
-          if (keys.length > 50) delete updated[keys[0]];
-          seriesSpeeds = updated;
-          chrome.storage.sync.set({ seriesSpeeds: updated });
-        }
-      }
+    if (save) appliedSeriesPath = location.pathname;
+
+    const info = site.getSeriesInfo();
+    const plan = CSC_LOGIC.planSpeedSave({
+      userInitiated: save,
+      rememberSpeed,
+      hasVideo: isVideoFrame,
+      slug: info.slug,
+      slugResolved: info.resolved
     });
+    if (plan.global) chrome.storage.sync.set({ speed });
+    if (plan.series) {
+      seriesSpeeds = CSC_LOGIC.withSeriesSpeed(seriesSpeeds, info.slug, speed, CSC_LOGIC.SERIES_SPEED_CAP);
+      chrome.storage.sync.set({ seriesSpeeds });
+    }
     return speed;
   }
 
   // ---- Messaging ----
+  function speedInfo() {
+    const info = site.getSeriesInfo();
+    return {
+      speed: currentSpeed,
+      hasVideo: !!videoElement,
+      slug: info.slug,
+      slugResolved: info.resolved,
+      siteLabel: site.label,
+      seriesSaved: hasSeriesSpeed(info.slug)
+    };
+  }
+
+  // Returns true only when sendResponse will be called asynchronously.
   function handleMessage(message, sender, sendResponse) {
     switch (message.action) {
       case 'setSpeed':
-        sendResponse({ success: true, speed: setVideoSpeed(message.speed) });
+        sendResponse({ success: true, speed: setVideoSpeed(message.speed, { save: true }) });
         break;
       case 'getSpeed':
-        sendResponse({ speed: currentSpeed, hasVideo: !!videoElement });
-        break;
+        // The frame that owns the video answers right away.
+        if (videoElement) {
+          sendResponse(speedInfo());
+          return false;
+        }
+        // Other frames without a video stay silent.
+        if (window !== window.top) return false;
+        // Top frame without a video: answer late so a player iframe wins.
+        setTimeout(() => sendResponse(speedInfo()), 300);
+        return true;
       case 'increaseSpeed':
-        sendResponse({ success: true, speed: setVideoSpeed(currentSpeed + speedStep) });
+        sendResponse({ success: true, speed: setVideoSpeed(currentSpeed + speedStep, { save: true }) });
         break;
       case 'decreaseSpeed':
-        sendResponse({ success: true, speed: setVideoSpeed(currentSpeed - speedStep) });
+        sendResponse({ success: true, speed: setVideoSpeed(currentSpeed - speedStep, { save: true }) });
         break;
       case 'resetSpeed':
-        sendResponse({ success: true, speed: setVideoSpeed(1.0) });
+        sendResponse({ success: true, speed: setVideoSpeed(1.0, { save: true }) });
         break;
       case 'toggleIndicator':
         showIndicator = message.show !== undefined ? message.show : !showIndicator;
@@ -372,7 +417,7 @@
       default:
         sendResponse({ success: false, error: 'Unknown action' });
     }
-    return true;
+    return false;
   }
 
   // Keep in-memory settings in sync with popup/options changes.
@@ -383,7 +428,8 @@
       if (!showIndicator) hideIndicator();
     }
     if (changes.speedStep) speedStep = changes.speedStep.newValue;
-    if (changes.perSeriesSpeed) perSeriesSpeed = changes.perSeriesSpeed.newValue;
+    if (changes.rememberSpeed) rememberSpeed = changes.rememberSpeed.newValue !== false;
+    if (changes.perSeriesSpeed) perSeriesSpeed = changes.perSeriesSpeed.newValue !== false;
     if (changes.autoSkip) autoSkip = changes.autoSkip.newValue;
     if (changes.shortcuts) shortcuts = { ...DEFAULT_SHORTCUTS, ...(changes.shortcuts.newValue || {}) };
     if (changes.seriesSpeeds) seriesSpeeds = changes.seriesSpeeds.newValue || {};
@@ -404,9 +450,9 @@
     for (const [action, sc] of Object.entries(shortcuts)) {
       if (!matchShortcut(e, sc)) continue;
       e.preventDefault();
-      if (action === 'increaseSpeed') setVideoSpeed(currentSpeed + speedStep);
-      else if (action === 'decreaseSpeed') setVideoSpeed(currentSpeed - speedStep);
-      else if (action === 'resetSpeed') setVideoSpeed(1.0);
+      if (action === 'increaseSpeed') setVideoSpeed(currentSpeed + speedStep, { save: true });
+      else if (action === 'decreaseSpeed') setVideoSpeed(currentSpeed - speedStep, { save: true });
+      else if (action === 'resetSpeed') setVideoSpeed(1.0, { save: true });
       else if (action === 'toggleIndicator') {
         showIndicator = !showIndicator;
         chrome.storage.sync.set({ showIndicator });
