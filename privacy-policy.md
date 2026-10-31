@@ -30,6 +30,7 @@ The extension uses Chrome's built-in storage API (`chrome.storage.sync`) to save
 - **Auto-skip preference** - Whether intros/outros are skipped automatically
 - **Custom keyboard shortcuts** - Your rebound in-page shortcut keys
 - **Watch statistics** - Cumulative time saved, time skipped, intros skipped, per-series totals, and daily activity used to power the stats dashboard and streaks (stored locally only via `chrome.storage.local`, never synced or transmitted)
+- **Thank-you card state** - Which time-saved milestone cards have been shown or dismissed, so each appears at most once (stored locally only via `chrome.storage.local`, stays on your device)
 
 This data:
 - Is stored locally in your browser
@@ -47,9 +48,9 @@ Required to inject the content script that controls video playback speed and aut
 
 ## Third-Party Services
 
-**Feedback (Google Apps Script).** The optional feedback feature sends user-submitted feedback to a Google Sheet via Google Apps Script. This only occurs when the user explicitly clicks "Submit" in the feedback form. Only the message text you type is sent — no identifiers, browsing data, or page content. No data is sent automatically or without user action.
+**Feedback (Google Apps Script).** The optional feedback feature sends user-submitted feedback to a Google Sheet via Google Apps Script. This only occurs when the user explicitly clicks "Send" in the feedback form. Only the message you type, the feedback type, the extension version and your current speed setting are sent — no identifiers, browsing data, or page content. No data is sent automatically or without user action.
 
-**Tip jar (PayPal).** The popup shows an optional one-time thank-you card after time-saved milestones, and the stats page has a tip link. Both only open a PayPal.me page in a new browser tab; the extension does not process, handle, or receive any payment information, and no data about you is transmitted by the extension when you click. Anything that happens on PayPal's site is governed by [PayPal's own privacy policy](https://www.paypal.com/us/legalhub/privacy-full). You never need to tip to use any feature — the extension is fully functional for free.
+**Tip jar (PayPal) and reviews.** The popup can show an optional thank-you card when your total time saved passes 5, 25 and 100 hours, and the stats page has a tip link. The card's Tip button and the stats page's tip link open a PayPal.me page in a new browser tab; the card's Rate button opens the extension's Chrome Web Store reviews page. The extension does not process, handle, or receive any payment information, and no data about you is transmitted by the extension when you click any of them. Anything that happens on PayPal's site is governed by [PayPal's own privacy policy](https://www.paypal.com/us/legalhub/privacy-full). You never need to tip to use any feature — the extension is fully functional for free.
 
 ## Changes to This Policy
 

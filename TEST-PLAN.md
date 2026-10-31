@@ -9,7 +9,7 @@ shortcuts and feedback section on the options page. No new permissions.
 | Check | Result |
 |-------|--------|
 | Unit tests (`node --test tests/logic.test.js`) | **17/17 pass** |
-| E2E smoke suite (`cd tests/e2e && npm test`, Chrome for Testing) | **14/14 pass** (including #13 manifest guard) |
+| E2E smoke suite (`cd tests/e2e && npm test`, Chrome for Testing) | **16/16 pass**, two consecutive runs (including #13 manifest guard; #15 stale series link after in-page navigation and #16 HIDIVE numeric-only URL added after the final review) |
 
 The in-browser popup and options checks (the Task 4 and Task 5 manual smoke) are
 covered by the E2E suite.

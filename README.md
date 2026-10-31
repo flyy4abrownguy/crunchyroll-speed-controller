@@ -224,7 +224,7 @@ Contributions are welcome! Feel free to:
 
 ## Support
 
-This extension is free and always will be. If it's saved you some time, the popup shows a one-time thank-you card when your total time saved passes 5, 25 and 100 hours, and the stats page has a quiet tip link. Both just open a PayPal.me page in a new tab. Tips are optional and keep the project maintained.
+This extension is free and always will be. If it's saved you some time, the popup can show a thank-you card once at each of the 5, 25 and 100-hour time-saved milestones, and never again after you pick Tip or Rate. Tip opens a PayPal.me page in a new tab and Rate opens the extension's Chrome Web Store reviews page; neither sends any data. The stats page also has a quiet tip link to the same PayPal.me page. Tips are optional and keep the project maintained.
 
 ---
 
