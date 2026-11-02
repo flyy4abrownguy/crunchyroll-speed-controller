@@ -186,6 +186,23 @@
     return out;
   }
 
+  // Nothing watched yet: no lifetime watch time and no day with watch time.
+  function isFirstRun(stats, daily) {
+    if (stats && Number(stats.totalTimeWatchedSec) > 0) return false;
+    if (daily && typeof daily === 'object') {
+      for (const day of Object.values(daily)) {
+        if (day && Number(day.watchedSec) > 0) return false;
+      }
+    }
+    return true;
+  }
+
+  // The idle popup's "Starting speed" row: on a supported site, or on first
+  // run anywhere. Without Remember speed every video starts at 1x, so it's hidden.
+  function showStartRow({ supported, firstRun, rememberSpeed }) {
+    return rememberSpeed !== false && (!!supported || !!firstRun);
+  }
+
   const api = {
     PAYPAL_USERNAME,
     MILESTONE_HOURS,
@@ -207,7 +224,9 @@
     isSupportedUrl,
     popupMode,
     isFeedbackSuccess,
-    migrateSyncSettings
+    migrateSyncSettings,
+    isFirstRun,
+    showStartRow
   };
 
   if (typeof module !== 'undefined') module.exports = api;

@@ -80,7 +80,12 @@
         </div>
       </header>
 
-      <div class="card stats-card">
+      <div id="firstRunCard" class="card stats-card first-run" hidden>
+        <div class="first-run-title">Pick a starting speed, then open an episode</div>
+        <div class="meta">Your time saved will show up here.</div>
+      </div>
+
+      <div id="idleStatsCard" class="card stats-card">
         <div class="card-label">Time saved this week</div>
         <div id="idleWeekSaved" class="big-number">0s</div>
         <div id="idleWeekMeta" class="meta"></div>
@@ -95,6 +100,14 @@
           <div class="tile-label">Top show</div>
           <div id="topShowName" class="tile-value"></div>
         </div>
+      </div>
+
+      <div id="startRow" class="start-row" hidden>
+        <div class="start-label">
+          <span>Starting speed</span>
+          <span class="meta">New shows start here</span>
+        </div>
+        <div id="startPresets" class="presets" role="group" aria-label="Starting speed"></div>
       </div>
 
       <label class="toggle-row">

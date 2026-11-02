@@ -97,7 +97,7 @@ The popup has two states.
 - **Auto-skip intros** — Toggle right in the popup
 - **Time saved this week**, plus shortcuts to the stats and settings pages
 
-**Idle** (anywhere else): time saved this week, intros skipped and streak, all-time saved, your top show, and the auto-skip toggle. Open an episode to change speed.
+**Idle** (anywhere else): time saved this week, intros skipped and streak, all-time saved, your top show, and the auto-skip toggle. On Crunchyroll or HIDIVE it also shows **Starting speed**, the speed shows without their own saved speed start at. The first time you open the popup it skips the empty stats and asks you to pick a starting speed, then open an episode.
 
 A show with no saved speed starts at the last speed you chose. Tabs opened before an update need a reload before speed controls turn on.
 

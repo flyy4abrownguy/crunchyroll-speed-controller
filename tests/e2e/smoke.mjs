@@ -133,6 +133,13 @@ async function openSite(url, { wantVideo = true } = {}) {
   return { page, tabId };
 }
 
+// A returning user: some watch time recorded, so the popup isn't in first-run mode.
+async function seedWatched() {
+  await swEval(() => chrome.storage.local.set({
+    stats: { totalTimeSavedSec: 600, totalTimeWatchedSec: 1800, introsSkipped: 2, timeSkippedSec: 120 }
+  }));
+}
+
 async function openPopup(tabId) {
   const page = await context.newPage();
   const query = tabId == null ? '' : `?tabId=${tabId}`;
@@ -373,6 +380,7 @@ describe('Speed Controller v2.1 smoke', () => {
   });
 
   test('9. non-supported tab', async () => {
+    await seedWatched();
     const { tabId } = await newTabFor(URLS.example);
     const popup = await openPopup(tabId);
     await expectVisible(popup, '#idle');
@@ -539,6 +547,53 @@ describe('Speed Controller v2.1 smoke', () => {
     await setSync({ perSeriesSpeed: false, speed: 1, seriesSpeeds: { 'frieren-beyond-journeys-end': 1.75 } });
     const { page } = await openSite(URLS.crWatch);
     await expectRate(page, 1.75, 4000);
+  });
+
+  test('19. starting speed row on a Crunchyroll page with no video', async () => {
+    await seedWatched();
+    const { tabId } = await openSite(URLS.crCatalog, { wantVideo: false });
+    const popup = await openPopup(tabId);
+    await expectVisible(popup, '#startRow');
+    assert.equal(await popup.locator('#startPresets .preset.active').getAttribute('data-speed'), '1');
+
+    await popup.click('#startPresets .preset[data-speed="1.25"]');
+    await eventually(async () => assert.equal((await sync('speed')).speed, 1.25));
+    assert.equal(await popup.locator('#startPresets .preset.active').getAttribute('data-speed'), '1.25');
+    assert.equal(await popup.locator('#firstRunCard').isHidden(), true);
+
+    // A show with no saved speed now starts at the chosen starting speed.
+    const show = await openSite(URLS.crWatchShow2);
+    await expectRate(show.page, 1.25, 4000);
+  });
+
+  test('20. first run: welcome card and starting speed, even off-site', async () => {
+    const { tabId } = await newTabFor(URLS.example);
+    const popup = await openPopup(tabId);
+    await expectVisible(popup, '#firstRunCard');
+    assert.ok((await textOf(popup, '#firstRunCard')).includes('Pick a starting speed, then open an episode'));
+    assert.equal(await popup.locator('#idleStatsCard').isHidden(), true);
+    assert.equal(await popup.locator('.tiles').isHidden(), true);
+    await expectVisible(popup, '#startRow');
+    assert.equal(await popup.locator('#idleHint').isHidden(), true);
+  });
+
+  test('21. returning user off-site: stats only, no starting speed row', async () => {
+    await seedWatched();
+    const { tabId } = await newTabFor(URLS.example);
+    const popup = await openPopup(tabId);
+    await expectVisible(popup, '#idleStatsCard');
+    assert.equal(await popup.locator('#startRow').isHidden(), true);
+    assert.equal(await popup.locator('#firstRunCard').isHidden(), true);
+  });
+
+  test('22. starting speed row hidden when Remember speed is off', async () => {
+    await seedWatched();
+    await setSync({ rememberSpeed: false });
+    const { tabId } = await openSite(URLS.crCatalog, { wantVideo: false });
+    const popup = await openPopup(tabId);
+    await expectVisible(popup, '#idle');
+    await sleep(1500);
+    assert.equal(await popup.locator('#startRow').isHidden(), true);
   });
 
   test('16. HIDIVE numeric-only URL', async () => {

@@ -153,3 +153,18 @@ test('migrateSyncSettings', () => {
   assert.deepEqual(L.migrateSyncSettings({ speed: 1.5, perSeriesSpeed: true, autoSkip: false }, defs), {});
   assert.deepEqual(L.migrateSyncSettings({}, defs), { speed: 1, perSeriesSpeed: true, autoSkip: true });
 });
+
+test('isFirstRun: nothing watched yet', () => {
+  assert.equal(L.isFirstRun({}, {}), true);
+  assert.equal(L.isFirstRun({ totalTimeWatchedSec: 0 }, { '2026-10-31': { watchedSec: 0 } }), true);
+  assert.equal(L.isFirstRun({ totalTimeWatchedSec: 120 }, {}), false);
+  assert.equal(L.isFirstRun({}, { '2026-10-31': { watchedSec: 30 } }), false);
+  assert.equal(L.isFirstRun(null, null), true);
+});
+
+test('showStartRow: on a supported site or on first run, only while speed is remembered', () => {
+  assert.equal(L.showStartRow({ supported: true, firstRun: false, rememberSpeed: true }), true);
+  assert.equal(L.showStartRow({ supported: false, firstRun: true, rememberSpeed: true }), true);
+  assert.equal(L.showStartRow({ supported: false, firstRun: false, rememberSpeed: true }), false);
+  assert.equal(L.showStartRow({ supported: true, firstRun: true, rememberSpeed: false }), false);
+});

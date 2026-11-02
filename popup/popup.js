@@ -18,6 +18,7 @@
 
   const HINT_DEFAULT = 'Open an episode on Crunchyroll or HIDIVE to change speed';
   const HINT_RELOAD = 'Reload this page to turn on speed controls';
+  const HINT_START = 'Open an episode to give it its own speed';
 
   const $ = (id) => document.getElementById(id);
   const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -33,6 +34,9 @@
     slugResolved: false,
     showName: '',
     confirmTimer: null,
+    startSpeed: 1, // global speed: where shows with no saved speed start
+    firstRun: false,
+    startRowVisible: false,
     milestone: null // { n, shown: number[], done: boolean }
   };
 
@@ -44,8 +48,8 @@
     });
   }
 
-  function buildPresets() {
-    const row = $('presets');
+  function buildPresets(rowId, onPick) {
+    const row = $(rowId);
     const last = L.PRESETS.length - 1;
     L.PRESETS.forEach((p, i) => {
       const btn = document.createElement('button');
@@ -56,7 +60,7 @@
       btn.setAttribute('aria-label', `${L.fmtSpeed(p)}x`);
       btn.addEventListener('click', () => {
         if (btn.classList.contains('active')) return;
-        changeSpeed(p);
+        onPick(p);
       });
       row.append(btn);
     });
@@ -120,7 +124,13 @@
     $('watching').hidden = !watching;
     $('idle').hidden = watching;
     if (!watching) {
-      $('idleHint').textContent = mode === 'idle-reload' ? HINT_RELOAD : HINT_DEFAULT;
+      // First run: the welcome card already says to open an episode.
+      let hint = HINT_DEFAULT;
+      if (mode === 'idle-reload') hint = HINT_RELOAD;
+      else if (state.firstRun) hint = '';
+      else if (state.startRowVisible) hint = HINT_START;
+      $('idleHint').textContent = hint;
+      $('idleHint').hidden = !hint;
       $('notWorkingLink').hidden = mode !== 'idle-broken';
     }
     document.body.dataset.mode = mode;
@@ -177,13 +187,32 @@
     const s = state.speed;
     $('speedValue').textContent = L.fmtSpeed(s);
     $('speedReadout').classList.toggle('is-custom', !sameSpeed(s, 1));
-    document.querySelectorAll('.preset').forEach((btn) => {
-      const on = sameSpeed(Number(btn.dataset.speed), s);
+    markActive('presets', s);
+    $('decreaseBtn').disabled = s <= MIN_SPEED + 0.001;
+    $('increaseBtn').disabled = s >= MAX_SPEED - 0.001;
+  }
+
+  function markActive(rowId, speed) {
+    document.querySelectorAll(`#${rowId} .preset`).forEach((btn) => {
+      const on = sameSpeed(Number(btn.dataset.speed), speed);
       btn.classList.toggle('active', on);
       btn.setAttribute('aria-pressed', String(on));
     });
-    $('decreaseBtn').disabled = s <= MIN_SPEED + 0.001;
-    $('increaseBtn').disabled = s >= MAX_SPEED - 0.001;
+  }
+
+  // ---- Starting speed (idle) ----
+  // Writes the global speed: what any show without its own saved speed
+  // starts at. A video already playing elsewhere keeps its current speed.
+  function pickStartSpeed(p) {
+    state.startSpeed = p;
+    markActive('startPresets', p);
+    chrome.storage.sync.set({ speed: p });
+  }
+
+  function renderFirstRun() {
+    $('firstRunCard').hidden = !state.firstRun;
+    $('idleStatsCard').hidden = state.firstRun;
+    document.querySelector('#idle .tiles').hidden = state.firstRun;
   }
 
   function renderSeriesLine() {
@@ -290,11 +319,12 @@
   // ---- Init ----
   async function init() {
     paintIcons();
-    buildPresets();
+    buildPresets('presets', changeSpeed);
+    buildPresets('startPresets', pickStartSpeed);
     bindEvents();
 
     const [sync, local, tab] = await Promise.all([
-      chrome.storage.sync.get({ rememberSpeed: true, speedStep: 0.25, autoSkip: true }),
+      chrome.storage.sync.get({ speed: 1, rememberSpeed: true, speedStep: 0.25, autoSkip: true }),
       chrome.storage.local.get({ stats: {}, seriesStats: {}, daily: {}, milestonePrompt: null }),
       resolveTab()
     ]);
@@ -303,12 +333,18 @@
     state.rememberSpeed = sync.rememberSpeed !== false;
     state.speedStep = Number(sync.speedStep) > 0 ? Number(sync.speedStep) : 0.25;
     setAutoSkip(sync.autoSkip !== false);
+    state.startSpeed = Number(sync.speed) > 0 ? Number(sync.speed) : 1;
+    state.firstRun = L.isFirstRun(local.stats, local.daily);
     renderStats(local);
+    renderFirstRun();
+    markActive('startPresets', state.startSpeed);
     initMilestone(local);
 
     const url = (tab && tab.url) || '';
     const supported = !!tab && L.isSupportedUrl(url);
     const watchUrl = L.isWatchUrl(url);
+    state.startRowVisible = L.showStartRow({ supported, firstRun: state.firstRun, rememberSpeed: state.rememberSpeed });
+    $('startRow').hidden = !state.startRowVisible;
     if (!supported) {
       show(L.popupMode({ supported: false }));
       return;
