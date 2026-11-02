@@ -32,6 +32,9 @@ export const hidiveWatch = page('<video></video>');
 // HIDIVE watch URL with only a numeric id, no show slug.
 export const hidiveNumeric = page('<video></video>');
 
+// A second show, for switching between shows.
+export const crWatchShow2 = page('<a href="/series/G2/solo-leveling">Solo Leveling</a><video></video>');
+
 export const examplePage = page('<h1>Example Domain</h1>');
 export const webStorePage = page('<h1>Chrome Web Store</h1>');
 
@@ -44,6 +47,7 @@ export const URLS = {
   crWatchNoVideo: 'https://www.crunchyroll.com/watch/XYZ/ep',
   hidiveWatch: 'https://www.hidive.com/video/12345/some-show-episode-1',
   hidiveNumeric: 'https://www.hidive.com/video/412345',
+  crWatchShow2: 'https://www.crunchyroll.com/watch/SL1/i-am-used-to-it',
   example: 'https://example.com/'
 };
 
@@ -57,5 +61,6 @@ export const PAGES = {
   [URLS.crWatchNoVideo]: crWatchNoVideo,
   [URLS.hidiveWatch]: hidiveWatch,
   [URLS.hidiveNumeric]: hidiveNumeric,
+  [URLS.crWatchShow2]: crWatchShow2,
   [URLS.example]: examplePage
 };

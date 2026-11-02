@@ -34,9 +34,6 @@
   // Last speed the user chose anywhere (sync `speed`); used for shows with no
   // saved per-show speed.
   let globalSpeed = 1.0;
-  // Per-show memory is always on in v2.1 (the UI toggle is gone); a missing
-  // key must never disable it.
-  let perSeriesSpeed = true;
   let seriesSpeeds = {};
   // Path whose per-show speed has been applied (or overridden by the user).
   let appliedSeriesPath = null;
@@ -69,7 +66,6 @@
       rememberSpeed: true,
       showIndicator: true,
       speedStep: 0.25,
-      perSeriesSpeed: true,
       seriesSpeeds: {},
       autoSkip: true,
       shortcuts: DEFAULT_SHORTCUTS
@@ -79,7 +75,6 @@
     speedStep = settings.speedStep;
     rememberSpeed = settings.rememberSpeed;
     globalSpeed = settings.speed;
-    perSeriesSpeed = settings.perSeriesSpeed;
     seriesSpeeds = settings.seriesSpeeds || {};
     autoSkip = settings.autoSkip;
     shortcuts = { ...DEFAULT_SHORTCUTS, ...(settings.shortcuts || {}) };
@@ -352,7 +347,8 @@
       pendingSeriesSave = null;
     }
 
-    if (!perSeriesSpeed) return;
+    // Per-show memory is always on in v2.1. The old perSeriesSpeed key is
+    // ignored: a copy whose update step never ran still has it set to false.
     if (appliedSeriesPath === path) return;
     appliedSeriesPath = path;
     if (hasSeriesSpeed(info.slug)) setVideoSpeed(seriesSpeeds[info.slug]);
@@ -477,7 +473,6 @@
     if (changes.speedStep) speedStep = changes.speedStep.newValue;
     if (changes.rememberSpeed) rememberSpeed = changes.rememberSpeed.newValue !== false;
     if (changes.speed && typeof changes.speed.newValue === 'number') globalSpeed = changes.speed.newValue;
-    if (changes.perSeriesSpeed) perSeriesSpeed = changes.perSeriesSpeed.newValue !== false;
     if (changes.autoSkip) autoSkip = changes.autoSkip.newValue;
     if (changes.shortcuts) shortcuts = { ...DEFAULT_SHORTCUTS, ...(changes.shortcuts.newValue || {}) };
     if (changes.seriesSpeeds) seriesSpeeds = changes.seriesSpeeds.newValue || {};

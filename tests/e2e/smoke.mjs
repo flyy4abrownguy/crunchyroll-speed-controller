@@ -507,6 +507,40 @@ describe('Speed Controller v2.1 smoke', () => {
     assert.deepEqual(seriesSpeeds, seeded, `per-show speeds changed: ${JSON.stringify(seriesSpeeds)}`);
   });
 
+  test('17. each show keeps its own speed across page loads', async () => {
+    const a = await openSite(URLS.crWatch);
+    let popup = await openPopup(a.tabId);
+    await expectVisible(popup, '#watching');
+    await popup.click('#watching .preset[data-speed="1.5"]');
+    await expectRate(a.page, 1.5);
+    await popup.close();
+
+    // A show with no saved speed starts at the last-used speed, then gets its own.
+    const b = await openSite(URLS.crWatchShow2);
+    await expectRate(b.page, 1.5);
+    popup = await openPopup(b.tabId);
+    await expectVisible(popup, '#watching');
+    await popup.click('#watching .preset[data-speed="2"]');
+    await expectRate(b.page, 2);
+    await popup.close();
+    await eventually(async () => assert.deepEqual((await sync('seriesSpeeds')).seriesSpeeds,
+      { 'frieren-beyond-journeys-end': 1.5, 'solo-leveling': 2 }));
+
+    // Coming back to the first show (fresh page load) restores its speed.
+    await a.page.reload();
+    await expectRate(a.page, 1.5, 4000);
+    popup = await openPopup(a.tabId);
+    await expectVisible(popup, '#watching');
+    await eventually(async () => assert.match(await textOf(popup, '#speedValue'), /^1\.5/));
+  });
+
+  test('18. per-show speed applies even if the old perSeriesSpeed flag is still false', async () => {
+    // A copy whose v2.1 update step never ran keeps v2.0's perSeriesSpeed: false.
+    await setSync({ perSeriesSpeed: false, speed: 1, seriesSpeeds: { 'frieren-beyond-journeys-end': 1.75 } });
+    const { page } = await openSite(URLS.crWatch);
+    await expectRate(page, 1.75, 4000);
+  });
+
   test('16. HIDIVE numeric-only URL', async () => {
     const { tabId } = await openSite(URLS.hidiveNumeric);
     const popup = await openPopup(tabId);
